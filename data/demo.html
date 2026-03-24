@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Flat4 Engine Monitor</title>
+<title>Flat4 Engine Monitor — DEMO</title>
 <style>
 /* ===== VW Type 2 / Bulli Color Theme ===== */
 :root {
@@ -995,18 +995,8 @@ function connectWS() {
   };
 }
 
-connectWS();
-
-// Fallback polling (only when WS is closed AND not in demo mode)
-setInterval(() => {
-  if (demoActive) return;
-  if (!ws || ws.readyState !== WebSocket.OPEN) {
-    fetch('/api/data')
-      .then(r => r.json())
-      .then(updateUI)
-      .catch(() => {});
-  }
-}, 500);
+// DEMO FILE: start immediately, no ESP32 needed
+startDemoMode();
 
 // ===== Settings modal =====
 const modalOverlay = document.getElementById('modalOverlay');
@@ -1016,12 +1006,9 @@ const saveBtn      = document.getElementById('saveBtn');
 const msgBanner    = document.getElementById('msgBanner');
 
 function openModal() {
-  fetch('/api/config')
-    .then(r => r.json())
-    .then(cfg => {
-      document.getElementById('inSSID').value = cfg.ssid || '';
-      document.getElementById('inPass').value  = '';
-    }).catch(() => {});
+  // Demo: pre-fill with default values
+  document.getElementById('inSSID').value = 'Flat4Monitor';
+  document.getElementById('inPass').value  = '';
   msgBanner.className = 'msg-banner';
   modalOverlay.classList.add('open');
 }
@@ -1043,32 +1030,15 @@ saveBtn.addEventListener('click', () => {
     msgBanner.textContent = 'Password must be at least 8 characters';
     msgBanner.className = 'msg-banner err'; return;
   }
+  // Demo: simulate save success
   saveBtn.disabled = true;
   saveBtn.textContent = 'Saving...';
-  fetch('/api/config', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ssid, pass })
-  })
-  .then(r => r.json())
-  .then(res => {
-    if (res.ok) {
-      msgBanner.textContent = 'Saved! Device is restarting — reconnect to new AP.';
-      msgBanner.className = 'msg-banner ok';
-      saveBtn.textContent = 'Restarting...';
-    } else {
-      msgBanner.textContent = 'Save failed. Check input.';
-      msgBanner.className = 'msg-banner err';
-      saveBtn.disabled = false;
-      saveBtn.textContent = 'Save & Restart';
-    }
-  })
-  .catch(() => {
-    msgBanner.textContent = 'Connection error.';
-    msgBanner.className = 'msg-banner err';
-    saveBtn.disabled = false;
+  setTimeout(() => {
+    msgBanner.textContent = '[DEMO] Settings would be saved on real device.';
+    msgBanner.className = 'msg-banner ok';
     saveBtn.textContent = 'Save & Restart';
-  });
+    saveBtn.disabled = false;
+  }, 800);
 });
 </script>
 </body>
