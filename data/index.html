@@ -562,6 +562,102 @@ body {
 
 .ws-dot.connected { background: #fff; box-shadow: 0 0 6px #fff; }
 
+/* ===== Camera Panel ===== */
+.card-camera {
+  grid-column: 1 / 4;
+  grid-row: 3;
+  flex-direction: column;
+  align-items: stretch;
+  padding: 24px;
+}
+
+.cam-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.cam-header h2 {
+  font-size: 0.75rem;
+  letter-spacing: 4px;
+  color: var(--vw-chrome);
+  text-transform: uppercase;
+}
+
+.cam-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.6rem;
+  letter-spacing: 1px;
+  color: var(--text-dim);
+  padding: 4px 12px;
+  border: 1px solid var(--gauge-ring);
+  border-radius: 20px;
+  transition: all 0.3s;
+}
+
+.cam-badge.live {
+  color: var(--vw-green);
+  border-color: var(--vw-green);
+  box-shadow: 0 0 8px rgba(39,174,96,0.3);
+}
+
+.cam-badge.error {
+  color: var(--vw-red);
+  border-color: var(--vw-red);
+}
+
+.cam-viewport {
+  width: 100%;
+  background: var(--gauge-bg);
+  border: 2px solid var(--gauge-ring);
+  border-radius: 8px;
+  overflow: hidden;
+  position: relative;
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cam-img {
+  width: 100%;
+  height: auto;
+  display: block;
+  max-height: 360px;
+  object-fit: contain;
+}
+
+.cam-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-dim);
+  font-size: 0.65rem;
+  letter-spacing: 2px;
+  padding: 40px 24px;
+  text-align: center;
+}
+
+.cam-placeholder svg {
+  opacity: 0.4;
+}
+
+.cam-btn-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+
+.cam-btn-row .btn {
+  flex: 0 0 auto;
+  min-width: 120px;
+}
+
 /* Responsive */
 @media(max-width:768px) {
   .dashboard {
@@ -573,12 +669,13 @@ body {
   .card-oilpress { grid-column: 2 / 3; }
   .card-oiltemp { grid-column: 1 / 3; }
   .card-timing { grid-column: 1 / 3; }
+  .card-camera { grid-column: 1 / 3; }
   .timing-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
 @media(max-width:480px) {
   .dashboard { grid-template-columns: 1fr; }
-  .card-oilpress, .card-oiltemp, .card-timing { grid-column: 1; }
+  .card-oilpress, .card-oiltemp, .card-timing, .card-camera { grid-column: 1; }
   .card-oiltemp { grid-row: auto; }
   .timing-grid { grid-template-columns: repeat(2, 1fr); }
 }
@@ -767,6 +864,32 @@ body {
     </div>
 
   </div><!-- end timing card -->
+
+  <!-- Camera Card -->
+  <div class="gauge-card card-camera">
+    <div class="cam-header">
+      <h2>Engine Camera</h2>
+      <div class="cam-badge" id="camBadge">&#9679; OFFLINE</div>
+    </div>
+    <div class="cam-viewport" id="camViewport">
+      <div class="cam-placeholder" id="camPlaceholder">
+        <svg width="52" height="52" viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="4" y="14" width="44" height="30" rx="4" stroke="currentColor" stroke-width="2"/>
+          <circle cx="26" cy="29" r="8" stroke="currentColor" stroke-width="2"/>
+          <path d="M20 14 L22 8 H30 L32 14" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+          <circle cx="26" cy="29" r="3" fill="currentColor" opacity="0.5"/>
+        </svg>
+        <span>CAMERA STREAM OFFLINE</span>
+        <span style="font-size:0.55rem;opacity:0.6;letter-spacing:1px;">PRESS START TO CONNECT &bull; PORT 81</span>
+      </div>
+      <img class="cam-img" id="camImg" alt="Engine Camera" style="display:none">
+    </div>
+    <div class="cam-btn-row">
+      <button class="btn btn-primary"   id="camStartBtn">&#9654; START</button>
+      <button class="btn btn-secondary" id="camStopBtn"  style="display:none">&#9646;&#9646; STOP</button>
+      <button class="btn btn-secondary" id="camSnapBtn">&#9685; SNAPSHOT</button>
+    </div>
+  </div>
 
 </main>
 
@@ -1005,6 +1128,61 @@ function connectWS() {
 }
 
 connectWS();
+
+// ===== Camera Controls =====
+(function() {
+  const camImg      = document.getElementById('camImg');
+  const camPH       = document.getElementById('camPlaceholder');
+  const camBadge    = document.getElementById('camBadge');
+  const camStartBtn = document.getElementById('camStartBtn');
+  const camStopBtn  = document.getElementById('camStopBtn');
+  const camSnapBtn  = document.getElementById('camSnapBtn');
+
+  function camBaseUrl() {
+    return `http://${window.location.hostname}:81`;
+  }
+
+  function startStream() {
+    const host = window.location.hostname;
+    if (!host || host === 'localhost' || host === '127.0.0.1') {
+      camBadge.textContent = '\u25CF DEMO — no stream';
+      camBadge.className = 'cam-badge';
+      return;
+    }
+    camImg.src = camBaseUrl() + '/stream';
+    camImg.style.display = 'block';
+    camPH.style.display  = 'none';
+    camBadge.textContent = '\u25CF LIVE';
+    camBadge.className   = 'cam-badge live';
+    camStartBtn.style.display = 'none';
+    camStopBtn.style.display  = '';
+  }
+
+  function stopStream() {
+    camImg.src = '';
+    camImg.style.display = 'none';
+    camPH.style.display  = 'flex';
+    camBadge.textContent = '\u25CF OFFLINE';
+    camBadge.className   = 'cam-badge';
+    camStartBtn.style.display = '';
+    camStopBtn.style.display  = 'none';
+  }
+
+  camImg.onerror = function() {
+    stopStream();
+    camBadge.textContent = '\u25CF ERROR';
+    camBadge.className   = 'cam-badge error';
+  };
+
+  camStartBtn.addEventListener('click', startStream);
+  camStopBtn.addEventListener('click', stopStream);
+
+  camSnapBtn.addEventListener('click', function() {
+    const host = window.location.hostname;
+    if (!host || host === 'localhost' || host === '127.0.0.1') return;
+    window.open(camBaseUrl() + '/snapshot', '_blank');
+  });
+})();
 
 // Fallback polling (only when WS is closed AND not in demo mode)
 setInterval(() => {

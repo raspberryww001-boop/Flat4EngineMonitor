@@ -4,6 +4,7 @@
 #include "ignition.h"
 #include "sensors.h"
 #include "webserver.h"
+#include "camera.h"
 
 extern "C" void webui_loop();
 
@@ -14,6 +15,11 @@ void setup() {
     // Load saved WiFi config from NVS
     Config::load();
     Serial.printf("[Config] SSID: %s\n", Config::getSSID().c_str());
+
+    // Initialize camera before WiFi (camera uses LEDC timers)
+    if (!Camera_begin()) {
+        Serial.println("[Camera] WARNING: Camera not available");
+    }
 
     // Start WiFi Access Point
     WiFi.mode(WIFI_AP);
@@ -33,9 +39,11 @@ void setup() {
     Serial.println("[Sensors] ADC initialized");
     Serial.println("[Ignition] Interrupts attached");
 
-    // Start web server
+    // Start web server (port 80) and camera stream server (port 81)
     WebUI::begin();
+    Camera_startStreamServer();
     Serial.println("[System] Ready. Connect to AP and open http://192.168.4.1");
+    Serial.println("[System] Camera stream: http://192.168.4.1:81/stream");
 }
 
 void loop() {
