@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flat4 Engine Monitor</title>
+<style>
+/* ===== VW Type 2 / Bulli Color Theme ===== */
+:root {
+  --vw-blue:      #003DA5;
+  --vw-cream:     #F5F0DC;
+  --vw-orange:    #E8600A;
+  --vw-orange2:   #FF8C42;
+  --vw-red:       #C0392B;
+  --vw-green:     #27AE60;
+  --vw-dark:      #1A1A2E;
+  --vw-panel:     #0D2137;
+  --vw-chrome:    #C9B88A;
+  --vw-chrome2:   #E5D5A3;
+  --text-light:   #F5F0DC;
+  --text-dim:     #A0956E;
+  --gauge-bg:     #0A1628;
+  --gauge-ring:   #1E3A5F;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--vw-dark);
+  font-family: 'Courier New', Courier, monospace;
+  color: var(--text-light);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ===== VW Type 2 Top Header Bar ===== */
+.vw-header {
+  background: linear-gradient(180deg, var(--vw-blue) 60%, #002880 100%);
+  border-bottom: 6px solid var(--vw-chrome);
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+}
+
+.vw-header::before {
+  content: '';
+  position: absolute;
+  bottom: -14px; left: 0; right: 0;
+  height: 8px;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--vw-chrome) 0px, var(--vw-chrome) 6px,
+    transparent 6px, transparent 10px
+  );
+}
+
+.vw-logo-area {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.vw-badge {
+  width: 56px; height: 56px;
+  background: var(--vw-chrome);
+  border-radius: 50%;
+  border: 3px solid var(--vw-chrome2);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 0 16px rgba(201,184,138,0.5);
+  position: relative;
+  overflow: hidden;
+}
+
+/* VW logo SVG */
+.vw-badge svg { width: 36px; height: 36px; }
+
+.vw-title-block h1 {
+  font-size: 1.4rem;
+  font-weight: bold;
+  letter-spacing: 3px;
+  color: var(--vw-cream);
+  text-transform: uppercase;
+}
+
+.vw-title-block p {
+  font-size: 0.7rem;
+  color: var(--vw-chrome);
+  letter-spacing: 2px;
+  margin-top: 2px;
+}
+
+.header-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.engine-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.75rem;
+  letter-spacing: 1px;
+}
+
+.status-dot {
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  background: var(--vw-red);
+  box-shadow: 0 0 6px var(--vw-red);
+  transition: all 0.3s;
+}
+
+.status-dot.running {
+  background: var(--vw-green);
+  box-shadow: 0 0 10px var(--vw-green);
+  animation: pulse-dot 1s infinite;
+}
+
+@keyframes pulse-dot {
+  0%,100% { opacity:1; } 50% { opacity:0.5; }
+}
+
+/* ===== VW Splitscreen Divider ===== */
+.vw-split {
+  background: var(--vw-orange);
+  height: 12px;
+  border-top: 2px solid #c0500a;
+  border-bottom: 2px solid #c0500a;
+  margin: 20px 0 0;
+}
+
+/* ===== Main Dashboard Grid ===== */
+.dashboard {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: auto auto;
+  gap: 20px;
+  padding: 28px 24px 24px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+/* ===== Gauge Card ===== */
+.gauge-card {
+  background: linear-gradient(160deg, var(--vw-panel) 0%, #091e36 100%);
+  border: 2px solid var(--vw-blue);
+  border-radius: 16px;
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow:
+    0 4px 20px rgba(0,0,0,0.5),
+    inset 0 1px 0 rgba(255,255,255,0.05);
+  position: relative;
+  overflow: hidden;
+}
+
+.gauge-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--vw-orange), transparent);
+}
+
+.gauge-label {
+  font-size: 0.65rem;
+  letter-spacing: 3px;
+  color: var(--vw-chrome);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+/* ===== SVG Radial Gauge ===== */
+.gauge-svg-wrap {
+  position: relative;
+  width: 160px; height: 100px;
+}
+
+.gauge-svg-wrap svg {
+  width: 160px; height: 160px;
+  position: absolute;
+  top: -60px; left: 0;
+}
+
+.gauge-value {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  text-align: center;
+  font-size: 1.8rem;
+  font-weight: bold;
+  color: var(--vw-cream);
+  line-height: 1;
+  text-shadow: 0 0 20px rgba(232,96,10,0.6);
+}
+
+.gauge-unit {
+  font-size: 0.7rem;
+  color: var(--vw-chrome);
+  letter-spacing: 1px;
+  margin-top: 8px;
+}
+
+/* ===== RPM Large Card ===== */
+.card-rpm {
+  grid-column: 1 / 2;
+  grid-row: 1;
+}
+
+.card-oilpress {
+  grid-column: 2 / 3;
+  grid-row: 1;
+}
+
+.card-oiltemp {
+  grid-column: 3 / 4;
+  grid-row: 1;
+}
+
+/* ===== Ignition Timing Panel (full width) ===== */
+.card-timing {
+  grid-column: 1 / 4;
+  grid-row: 2;
+  flex-direction: column;
+  align-items: stretch;
+  padding: 24px;
+}
+
+.timing-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.timing-header h2 {
+  font-size: 0.75rem;
+  letter-spacing: 4px;
+  color: var(--vw-chrome);
+  text-transform: uppercase;
+}
+
+.timing-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.cyl-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.cyl-label {
+  font-size: 0.65rem;
+  letter-spacing: 2px;
+  color: var(--vw-chrome);
+  text-transform: uppercase;
+}
+
+.cyl-badge {
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  border: 3px solid var(--vw-blue);
+  background: var(--gauge-bg);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: var(--vw-cream);
+  transition: all 0.15s;
+  position: relative;
+}
+
+.cyl-badge.fired {
+  border-color: var(--vw-orange);
+  background: rgba(232,96,10,0.15);
+  box-shadow: 0 0 16px rgba(232,96,10,0.5);
+  color: var(--vw-orange2);
+}
+
+.cyl-badge.ref-cyl {
+  border-color: var(--vw-chrome);
+}
+
+/* Spark animation */
+.spark-flash {
+  position: absolute;
+  top: -6px; right: -6px;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: var(--vw-orange2);
+  opacity: 0;
+  transition: opacity 0.05s;
+}
+
+.cyl-badge.fired .spark-flash {
+  opacity: 1;
+  animation: flash 0.15s forwards;
+}
+
+@keyframes flash {
+  0%   { opacity:1; transform:scale(1); }
+  100% { opacity:0; transform:scale(2); }
+}
+
+/* Timing bar */
+.timing-bar-wrap {
+  width: 100%;
+  height: 8px;
+  background: var(--gauge-ring);
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+}
+
+.timing-bar {
+  height: 100%;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--vw-blue), var(--vw-orange));
+  transition: width 0.3s ease;
+}
+
+.timing-deg {
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: var(--vw-cream);
+}
+
+.timing-deg-unit {
+  font-size: 0.6rem;
+  color: var(--vw-chrome);
+  letter-spacing: 1px;
+}
+
+/* Crank angle diagram */
+.crank-diagram {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  margin-top: 16px;
+  position: relative;
+}
+
+.crank-line {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 32px;
+  position: relative;
+}
+
+.crank-track {
+  flex: 1;
+  height: 4px;
+  background: var(--gauge-ring);
+  border-radius: 2px;
+  position: relative;
+}
+
+.crank-tick {
+  position: absolute;
+  top: -8px;
+  width: 2px;
+  height: 20px;
+  background: var(--text-dim);
+  border-radius: 1px;
+  transform: translateX(-50%);
+}
+
+.crank-tick.ref { background: var(--vw-chrome); height: 28px; top: -12px; width: 3px; }
+
+.crank-marker {
+  position: absolute;
+  top: -14px;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--vw-orange);
+  transform: translateX(-50%);
+  box-shadow: 0 0 8px var(--vw-orange);
+  transition: left 0.3s ease;
+}
+
+.crank-marker.cyl1 { background: var(--vw-chrome); box-shadow: 0 0 8px var(--vw-chrome); }
+
+/* ===== Settings Modal ===== */
+.settings-btn {
+  position: fixed;
+  bottom: 24px; right: 24px;
+  width: 52px; height: 52px;
+  border-radius: 50%;
+  background: var(--vw-blue);
+  border: 2px solid var(--vw-chrome);
+  color: var(--vw-cream);
+  font-size: 1.3rem;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0,0,50,0.5);
+  transition: all 0.2s;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 100;
+}
+
+.settings-btn:hover {
+  background: var(--vw-orange);
+  transform: rotate(30deg);
+}
+
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 200;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-overlay.open { display: flex; }
+
+.modal {
+  background: var(--vw-panel);
+  border: 2px solid var(--vw-blue);
+  border-top: 4px solid var(--vw-orange);
+  border-radius: 16px;
+  padding: 32px;
+  width: 360px;
+  max-width: 95vw;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.8);
+}
+
+.modal h2 {
+  font-size: 0.8rem;
+  letter-spacing: 4px;
+  color: var(--vw-chrome);
+  text-transform: uppercase;
+  margin-bottom: 24px;
+  display: flex; align-items: center; gap: 10px;
+}
+
+.modal h2::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--vw-blue);
+}
+
+.form-group {
+  margin-bottom: 18px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 0.65rem;
+  letter-spacing: 2px;
+  color: var(--vw-chrome);
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.form-group input {
+  width: 100%;
+  background: var(--gauge-bg);
+  border: 1px solid var(--vw-blue);
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: var(--vw-cream);
+  font-family: inherit;
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.form-group input:focus {
+  border-color: var(--vw-orange);
+}
+
+.btn-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.btn {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.8rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-primary {
+  background: var(--vw-orange);
+  color: white;
+  border: 1px solid #c0500a;
+}
+
+.btn-primary:hover { background: #c0500a; }
+
+.btn-secondary {
+  background: transparent;
+  color: var(--text-dim);
+  border: 1px solid var(--gauge-ring);
+}
+
+.btn-secondary:hover { border-color: var(--vw-blue); color: var(--vw-cream); }
+
+.msg-banner {
+  margin-top: 12px;
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  text-align: center;
+  display: none;
+}
+
+.msg-banner.ok { background: rgba(39,174,96,0.2); border: 1px solid var(--vw-green); color: var(--vw-green); display: block; }
+.msg-banner.err { background: rgba(192,57,43,0.2); border: 1px solid var(--vw-red); color: var(--vw-red); display: block; }
+
+/* ===== VW bus bottom strip ===== */
+.vw-footer {
+  background: var(--vw-orange);
+  border-top: 3px solid #c0500a;
+  padding: 8px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 12px;
+}
+
+.vw-footer span {
+  font-size: 0.6rem;
+  letter-spacing: 2px;
+  color: rgba(255,255,255,0.8);
+  text-transform: uppercase;
+}
+
+.ws-indicator {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 0.6rem;
+  letter-spacing: 1px;
+  color: rgba(255,255,255,0.8);
+}
+
+.ws-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.3);
+  transition: all 0.3s;
+}
+
+.ws-dot.connected { background: #fff; box-shadow: 0 0 6px #fff; }
+
+/* Responsive */
+@media(max-width:768px) {
+  .dashboard {
+    grid-template-columns: 1fr 1fr;
+    padding: 16px;
+    gap: 14px;
+  }
+  .card-rpm    { grid-column: 1 / 2; }
+  .card-oilpress { grid-column: 2 / 3; }
+  .card-oiltemp { grid-column: 1 / 3; }
+  .card-timing { grid-column: 1 / 3; }
+  .timing-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media(max-width:480px) {
+  .dashboard { grid-template-columns: 1fr; }
+  .card-oilpress, .card-oiltemp, .card-timing { grid-column: 1; }
+  .card-oiltemp { grid-row: auto; }
+  .timing-grid { grid-template-columns: repeat(2, 1fr); }
+}
+</style>
+</head>
+<body>
+
+<!-- ===== Header ===== -->
+<header class="vw-header">
+  <div class="vw-logo-area">
+    <div class="vw-badge">
+      <!-- VW Logo -->
+      <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="50" cy="50" r="48" fill="#003DA5" stroke="#1A1A2E" stroke-width="2"/>
+        <path d="M50 10 C28 10 10 28 10 50 C10 72 28 90 50 90 C72 90 90 72 90 50 C90 28 72 10 50 10Z" fill="#003DA5"/>
+        <!-- V shape -->
+        <path d="M30 28 L50 65 L70 28 L62 28 L50 55 L38 28 Z" fill="white"/>
+        <!-- W shape lower -->
+        <path d="M22 38 L32 65 L42 45 L50 68 L58 45 L68 65 L78 38 L70 38 L62 58 L50 35 L38 58 L30 38 Z" fill="white" opacity="0"/>
+        <text x="50" y="72" text-anchor="middle" font-family="Arial Black" font-weight="900" font-size="22" fill="white" letter-spacing="-2">VW</text>
+      </svg>
+    </div>
+    <div class="vw-title-block">
+      <h1>Flat4 Monitor</h1>
+      <p>Engine Timing & Diagnostics System</p>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="engine-status">
+      <div class="status-dot" id="statusDot"></div>
+      <span id="statusText">ENGINE STOPPED</span>
+    </div>
+    <div style="font-size:0.6rem;color:var(--vw-chrome);letter-spacing:1px;" id="apIpDisplay">AP: 192.168.4.1</div>
+  </div>
+</header>
+
+<div class="vw-split"></div>
+
+<!-- ===== Dashboard ===== -->
+<main class="dashboard">
+
+  <!-- RPM Card -->
+  <div class="gauge-card card-rpm">
+    <div class="gauge-label">Engine Speed</div>
+    <div class="gauge-svg-wrap">
+      <svg viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg">
+        <!-- Background arc -->
+        <path id="rpmBgArc" d="" fill="none" stroke="#1E3A5F" stroke-width="14" stroke-linecap="round"/>
+        <!-- Value arc -->
+        <path id="rpmArc" d="" fill="none" stroke="url(#rpmGrad)" stroke-width="14" stroke-linecap="round"/>
+        <defs>
+          <linearGradient id="rpmGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#003DA5"/>
+            <stop offset="100%" stop-color="#E8600A"/>
+          </linearGradient>
+        </defs>
+      </svg>
+      <div class="gauge-value" id="rpmValue">0</div>
+    </div>
+    <div class="gauge-unit">RPM</div>
+  </div>
+
+  <!-- Oil Pressure Card -->
+  <div class="gauge-card card-oilpress">
+    <div class="gauge-label">Oil Pressure</div>
+    <div class="gauge-svg-wrap">
+      <svg viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg">
+        <path id="opBgArc" d="" fill="none" stroke="#1E3A5F" stroke-width="14" stroke-linecap="round"/>
+        <path id="opArc"   d="" fill="none" stroke="url(#opGrad)"  stroke-width="14" stroke-linecap="round"/>
+        <defs>
+          <linearGradient id="opGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#27AE60"/>
+            <stop offset="70%" stop-color="#E8600A"/>
+            <stop offset="100%" stop-color="#C0392B"/>
+          </linearGradient>
+        </defs>
+      </svg>
+      <div class="gauge-value" id="opValue">0.0</div>
+    </div>
+    <div class="gauge-unit">BAR</div>
+  </div>
+
+  <!-- Oil Temp Card -->
+  <div class="gauge-card card-oiltemp">
+    <div class="gauge-label">Oil Temperature</div>
+    <div class="gauge-svg-wrap">
+      <svg viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg">
+        <path id="otBgArc" d="" fill="none" stroke="#1E3A5F" stroke-width="14" stroke-linecap="round"/>
+        <path id="otArc"   d="" fill="none" stroke="url(#otGrad)"  stroke-width="14" stroke-linecap="round"/>
+        <defs>
+          <linearGradient id="otGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#003DA5"/>
+            <stop offset="50%" stop-color="#27AE60"/>
+            <stop offset="100%" stop-color="#C0392B"/>
+          </linearGradient>
+        </defs>
+      </svg>
+      <div class="gauge-value" id="otValue">--</div>
+    </div>
+    <div class="gauge-unit">°C</div>
+  </div>
+
+  <!-- Ignition Timing Card -->
+  <div class="gauge-card card-timing">
+    <div class="timing-header">
+      <h2>Ignition Timing</h2>
+      <span style="font-size:0.6rem;color:var(--text-dim);letter-spacing:1px;">CYL.1 = REFERENCE (0°)</span>
+    </div>
+
+    <div class="timing-grid">
+      <!-- Cylinder 1 -->
+      <div class="cyl-block">
+        <div class="cyl-label">Cyl. 1 (Ref)</div>
+        <div class="cyl-badge ref-cyl" id="cyl1Badge">
+          1
+          <div class="spark-flash" id="spark1"></div>
+        </div>
+        <div class="timing-deg" id="tim1">0.0°</div>
+        <div class="timing-deg-unit">REFERENCE</div>
+        <div class="timing-bar-wrap">
+          <div class="timing-bar" id="bar1" style="width:0%"></div>
+        </div>
+      </div>
+      <!-- Cylinder 2 -->
+      <div class="cyl-block">
+        <div class="cyl-label">Cyl. 2</div>
+        <div class="cyl-badge" id="cyl2Badge">
+          2
+          <div class="spark-flash" id="spark2"></div>
+        </div>
+        <div class="timing-deg" id="tim2">180.0°</div>
+        <div class="timing-deg-unit">FROM CYL.1</div>
+        <div class="timing-bar-wrap">
+          <div class="timing-bar" id="bar2" style="width:50%"></div>
+        </div>
+      </div>
+      <!-- Cylinder 3 -->
+      <div class="cyl-block">
+        <div class="cyl-label">Cyl. 3</div>
+        <div class="cyl-badge" id="cyl3Badge">
+          3
+          <div class="spark-flash" id="spark3"></div>
+        </div>
+        <div class="timing-deg" id="tim3">360.0°</div>
+        <div class="timing-deg-unit">FROM CYL.1</div>
+        <div class="timing-bar-wrap">
+          <div class="timing-bar" id="bar3" style="width:100%"></div>
+        </div>
+      </div>
+      <!-- Cylinder 4 -->
+      <div class="cyl-block">
+        <div class="cyl-label">Cyl. 4</div>
+        <div class="cyl-badge" id="cyl4Badge">
+          4
+          <div class="spark-flash" id="spark4"></div>
+        </div>
+        <div class="timing-deg" id="tim4">540.0°</div>
+        <div class="timing-deg-unit">FROM CYL.1</div>
+        <div class="timing-bar-wrap">
+          <div class="timing-bar" id="bar4" style="width:100%"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Crank angle linear diagram -->
+    <div style="margin-top:24px;">
+      <div style="font-size:0.6rem;letter-spacing:2px;color:var(--text-dim);margin-bottom:8px;">CRANK ANGLE (0° – 720°)</div>
+      <div class="crank-line">
+        <div class="crank-track" id="crankTrack">
+          <!-- Ticks at 0, 180, 360, 540, 720 -->
+          <div class="crank-tick ref" style="left:0%"></div>
+          <div class="crank-tick" style="left:25%"></div>
+          <div class="crank-tick" style="left:50%"></div>
+          <div class="crank-tick" style="left:75%"></div>
+          <div class="crank-tick ref" style="left:100%"></div>
+          <!-- Cylinder markers -->
+          <div class="crank-marker cyl1" id="mark1" style="left:0%"></div>
+          <div class="crank-marker" id="mark2" style="left:25%"></div>
+          <div class="crank-marker" id="mark3" style="left:50%"></div>
+          <div class="crank-marker" id="mark4" style="left:75%"></div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:0.55rem;color:var(--text-dim);">
+        <span>0°</span><span>180°</span><span>360°</span><span>540°</span><span>720°</span>
+      </div>
+    </div>
+
+  </div><!-- end timing card -->
+
+</main>
+
+<!-- ===== Footer ===== -->
+<footer class="vw-footer">
+  <span>Flat4 Engine Monitor &copy; 2024</span>
+  <div class="ws-indicator">
+    <div class="ws-dot" id="wsDot"></div>
+    <span id="wsStatus">DISCONNECTED</span>
+  </div>
+  <span>VW TYPE 2 INSPIRED</span>
+</footer>
+
+<!-- ===== Settings Button ===== -->
+<button class="settings-btn" id="settingsBtn" title="WiFi Settings">&#9881;</button>
+
+<!-- ===== Settings Modal ===== -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h2>WiFi Settings</h2>
+    <div class="form-group">
+      <label>Access Point SSID</label>
+      <input type="text" id="inSSID" placeholder="Flat4Monitor" maxlength="32">
+    </div>
+    <div class="form-group">
+      <label>Password (min 8 chars)</label>
+      <input type="password" id="inPass" placeholder="••••••••" maxlength="64">
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" id="cancelBtn">Cancel</button>
+      <button class="btn btn-primary" id="saveBtn">Save &amp; Restart</button>
+    </div>
+    <div class="msg-banner" id="msgBanner"></div>
+  </div>
+</div>
+
+<script>
+// ===== Arc path helpers =====
+function polarToXY(cx, cy, r, angleDeg) {
+  const rad = (angleDeg - 90) * Math.PI / 180;
+  return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+}
+
+function arcPath(cx, cy, r, startDeg, endDeg) {
+  const s = polarToXY(cx, cy, r, startDeg);
+  const e = polarToXY(cx, cy, r, endDeg);
+  const large = (endDeg - startDeg) > 180 ? 1 : 0;
+  return `M ${s.x} ${s.y} A ${r} ${r} 0 ${large} 1 ${e.x} ${e.y}`;
+}
+
+// ===== Gauge setup =====
+const GAUGE_CX = 80, GAUGE_CY = 80, GAUGE_R = 62;
+const ARC_START = -230, ARC_END = 50; // 280° sweep
+
+function initGauge(bgId, arcId) {
+  const bg = document.getElementById(bgId);
+  const arc = document.getElementById(arcId);
+  bg.setAttribute('d', arcPath(GAUGE_CX, GAUGE_CY, GAUGE_R, ARC_START, ARC_END));
+  arc.setAttribute('d', arcPath(GAUGE_CX, GAUGE_CY, GAUGE_R, ARC_START, ARC_START));
+}
+
+function setGauge(arcId, pct) {
+  const span = ARC_END - ARC_START;
+  const end = ARC_START + span * Math.min(Math.max(pct, 0), 1);
+  const arc = document.getElementById(arcId);
+  arc.setAttribute('d', arcPath(GAUGE_CX, GAUGE_CY, GAUGE_R, ARC_START, end));
+}
+
+initGauge('rpmBgArc', 'rpmArc');
+initGauge('opBgArc',  'opArc');
+initGauge('otBgArc',  'otArc');
+
+// ===== Update UI from data =====
+function updateUI(d) {
+  // Engine status
+  const running = d.running;
+  document.getElementById('statusDot').className = 'status-dot' + (running ? ' running' : '');
+  document.getElementById('statusText').textContent = running ? 'ENGINE RUNNING' : 'ENGINE STOPPED';
+
+  // RPM gauge (0–8000)
+  const rpm = d.rpm || 0;
+  document.getElementById('rpmValue').textContent = rpm.toLocaleString();
+  setGauge('rpmArc', rpm / 8000);
+
+  // Oil pressure (0–10 bar)
+  const op = d.oilPressBar || 0;
+  document.getElementById('opValue').textContent = op.toFixed(1);
+  setGauge('opArc', op / 10);
+
+  // Oil temp (0–150°C displayed range 40–150)
+  const ot = d.oilTempC;
+  document.getElementById('otValue').textContent =
+    (ot !== undefined && ot > -50) ? ot.toFixed(0) : '--';
+  setGauge('otArc', ((ot || 40) - 40) / 110);
+
+  // Ignition timing
+  const timing = d.timing || [0, 180, 360, 540];
+  const firing  = d.firing  || [false, false, false, false];
+
+  for (let i = 0; i < 4; i++) {
+    const badge = document.getElementById(`cyl${i+1}Badge`);
+    const deg   = timing[i] || 0;
+    const degNorm = ((deg % 720) + 720) % 720; // 0–720
+    const pct   = degNorm / 720;
+
+    // Update badge fired state
+    if (firing[i]) {
+      badge.classList.add('fired');
+      setTimeout(() => badge.classList.remove('fired'), 150);
+    }
+
+    // Update degree display
+    const sign = deg >= 0 ? '+' : '';
+    document.getElementById(`tim${i+1}`).textContent =
+      (i === 0) ? '0.0°' : `${deg >= 0 ? '+' : ''}${deg.toFixed(1)}°`;
+
+    // Update bar
+    document.getElementById(`bar${i+1}`).style.width =
+      (i === 0) ? '0%' : `${Math.min(Math.abs(pct) * 100, 100).toFixed(1)}%`;
+
+    // Update crank marker
+    const marker = document.getElementById(`mark${i+1}`);
+    marker.style.left = `${(pct * 100).toFixed(1)}%`;
+  }
+}
+
+// ===== WebSocket connection =====
+let ws, wsReconnectTimer;
+
+function connectWS() {
+  const host = window.location.hostname;
+  ws = new WebSocket(`ws://${host}/ws`);
+
+  ws.onopen = () => {
+    document.getElementById('wsDot').className = 'ws-dot connected';
+    document.getElementById('wsStatus').textContent = 'CONNECTED';
+    if (wsReconnectTimer) { clearTimeout(wsReconnectTimer); wsReconnectTimer = null; }
+  };
+
+  ws.onmessage = (evt) => {
+    try {
+      updateUI(JSON.parse(evt.data));
+    } catch(e) { console.warn('WS parse error', e); }
+  };
+
+  ws.onclose = ws.onerror = () => {
+    document.getElementById('wsDot').className = 'ws-dot';
+    document.getElementById('wsStatus').textContent = 'RECONNECTING...';
+    wsReconnectTimer = setTimeout(connectWS, 2000);
+  };
+}
+
+connectWS();
+
+// Fallback polling when WS is closed
+setInterval(() => {
+  if (!ws || ws.readyState !== WebSocket.OPEN) {
+    fetch('/api/data')
+      .then(r => r.json())
+      .then(updateUI)
+      .catch(() => {});
+  }
+}, 500);
+
+// ===== Settings modal =====
+const modalOverlay = document.getElementById('modalOverlay');
+const settingsBtn  = document.getElementById('settingsBtn');
+const cancelBtn    = document.getElementById('cancelBtn');
+const saveBtn      = document.getElementById('saveBtn');
+const msgBanner    = document.getElementById('msgBanner');
+
+function openModal() {
+  fetch('/api/config')
+    .then(r => r.json())
+    .then(cfg => {
+      document.getElementById('inSSID').value = cfg.ssid || '';
+      document.getElementById('inPass').value  = '';
+    }).catch(() => {});
+  msgBanner.className = 'msg-banner';
+  modalOverlay.classList.add('open');
+}
+
+function closeModal() { modalOverlay.classList.remove('open'); }
+
+settingsBtn.addEventListener('click', openModal);
+cancelBtn.addEventListener('click', closeModal);
+modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) closeModal(); });
+
+saveBtn.addEventListener('click', () => {
+  const ssid = document.getElementById('inSSID').value.trim();
+  const pass  = document.getElementById('inPass').value;
+  if (ssid.length < 2) {
+    msgBanner.textContent = 'SSID must be at least 2 characters';
+    msgBanner.className = 'msg-banner err'; return;
+  }
+  if (pass.length > 0 && pass.length < 8) {
+    msgBanner.textContent = 'Password must be at least 8 characters';
+    msgBanner.className = 'msg-banner err'; return;
+  }
+  saveBtn.disabled = true;
+  saveBtn.textContent = 'Saving...';
+  fetch('/api/config', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ssid, pass })
+  })
+  .then(r => r.json())
+  .then(res => {
+    if (res.ok) {
+      msgBanner.textContent = 'Saved! Device is restarting — reconnect to new AP.';
+      msgBanner.className = 'msg-banner ok';
+      saveBtn.textContent = 'Restarting...';
+    } else {
+      msgBanner.textContent = 'Save failed. Check input.';
+      msgBanner.className = 'msg-banner err';
+      saveBtn.disabled = false;
+      saveBtn.textContent = 'Save & Restart';
+    }
+  })
+  .catch(() => {
+    msgBanner.textContent = 'Connection error.';
+    msgBanner.className = 'msg-banner err';
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Save & Restart';
+  });
+});
+</script>
+</body>
+</html>
