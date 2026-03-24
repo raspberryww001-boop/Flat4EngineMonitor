@@ -917,22 +917,25 @@ function startDemoMode() {
   document.getElementById('wsDot').style.background = 'var(--vw-orange2)';
   document.getElementById('wsDot').style.boxShadow  = '0 0 6px var(--vw-orange2)';
 
-  // At 1000 RPM, 720° takes 120 ms → each of the 4 cylinders fires every 30 ms
-  const periodMs = (120000 / DEMO.rpm); // ms for full 720° cycle = 120s/RPM
-  const stepMs   = 16;                   // ~60fps animation step
+  // At 1000 RPM, 720° takes 120 ms. Step size ~60fps = 16ms → ~96°/step
+  // Using "crossed the angle" detection instead of "within window" to avoid
+  // skipping cylinders when degPerStep > firing window size
+  const periodMs   = 120000 / DEMO.rpm; // ms for full 720° cycle
+  const stepMs     = 16;                 // ~60 fps
   const degPerStep = (720 / periodMs) * stepMs;
 
-  // Firing flags per cylinder
-  const fired = [false, false, false, false];
-  const FIRE_WIDTH_DEG = 8; // degrees of "firing" window
-
   demoTimer = setInterval(() => {
+    const prevPhase = demoPhase;
     demoPhase = (demoPhase + degPerStep) % 720;
 
-    // Build firing array: true when crankPhase is within FIRE_WIDTH_DEG of cyl's timing
+    // Fire when the crank angle CROSSED each cylinder's base angle in this step
     const firingNow = DEMO.timingBase.map(base => {
-      const diff = ((demoPhase - base + 720) % 720);
-      return diff < FIRE_WIDTH_DEG || diff > (720 - FIRE_WIDTH_DEG);
+      const b = ((base % 720) + 720) % 720;
+      if (demoPhase >= prevPhase) {
+        return b >= prevPhase && b < demoPhase;        // normal step
+      } else {
+        return b >= prevPhase || b < demoPhase;        // wrapped past 720°
+      }
     });
 
     updateUI({
