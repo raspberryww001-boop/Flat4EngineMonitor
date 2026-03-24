@@ -390,6 +390,60 @@ body {
 
 .crank-marker.cyl1 { background: var(--vw-chrome); box-shadow: 0 0 8px var(--vw-chrome); }
 
+.crank-marker.fired {
+  background: #fff !important;
+  box-shadow: 0 0 16px #fff, 0 0 6px var(--vw-orange2) !important;
+  transform: translateX(-50%) scale(2.2);
+  z-index: 2;
+}
+
+/* ===== RPM Slider (demo only) ===== */
+.rpm-slider-wrap {
+  width: 100%;
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.rpm-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--vw-blue), var(--vw-orange));
+  outline: none;
+  cursor: pointer;
+}
+
+.rpm-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: var(--vw-chrome);
+  border: 2px solid var(--vw-dark);
+  box-shadow: 0 0 6px rgba(201,184,138,0.5);
+  cursor: pointer;
+}
+
+.rpm-slider::-moz-range-thumb {
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: var(--vw-chrome);
+  border: 2px solid var(--vw-dark);
+  cursor: pointer;
+}
+
+.rpm-slider-label {
+  font-size: 0.6rem;
+  letter-spacing: 2px;
+  color: var(--vw-orange2);
+  text-transform: uppercase;
+}
+
 /* ===== Settings Modal ===== */
 .settings-btn {
   position: fixed;
@@ -639,6 +693,11 @@ body {
       <div class="gauge-value" id="rpmValue">0</div>
     </div>
     <div class="gauge-unit">RPM</div>
+    <div class="rpm-slider-wrap">
+      <input type="range" class="rpm-slider" id="rpmSlider"
+             min="500" max="8000" step="100" value="1000">
+      <div class="rpm-slider-label" id="rpmSliderLabel">1,000 RPM — DEMO</div>
+    </div>
   </div>
 
   <!-- Oil Pressure Card -->
@@ -904,9 +963,48 @@ const DEMO = {
   timingBase: [0, 540, 360, 180]
 };
 
-let demoActive = false;
-let demoTimer  = null;
-let demoPhase  = 0; // current crank angle 0–720
+let demoActive      = false;
+let demoPhase       = 0;           // current crank angle 0–720
+let demoTimerIds    = [];          // all active setTimeout IDs (for cancellation)
+let demoRafId       = null;        // requestAnimationFrame ID
+let demoRafLastTs   = null;        // last rAF timestamp
+
+// Flash the badge and crank-diagram marker for cylinder cylIdx (0-based)
+function flashCylinder(cylIdx, flashMs) {
+  const n     = cylIdx + 1;
+  const badge  = document.getElementById('cyl' + n + 'Badge');
+  const marker = document.getElementById('mark' + n);
+  badge.classList.add('fired');
+  marker.classList.add('fired');
+  setTimeout(() => {
+    badge.classList.remove('fired');
+    marker.classList.remove('fired');
+  }, flashMs);
+}
+
+// Cancel all running demo spark timers (does NOT stop rAF)
+function clearDemoTimers() {
+  demoTimerIds.forEach(id => clearTimeout(id));
+  demoTimerIds = [];
+}
+
+// Start (or restart) the per-cylinder spark timers at the given RPM
+function startSparkTimers(rpm) {
+  clearDemoTimers();
+  const periodMs = 120000 / rpm;
+  const flashMs  = Math.min(80, periodMs * 0.25); // flash duration scales with RPM
+
+  DEMO.timingBase.forEach((baseDeg, cylIdx) => {
+    const initialDelayMs = (baseDeg / 720) * periodMs;
+    function scheduleFire() {
+      flashCylinder(cylIdx, flashMs);
+      const id = setTimeout(scheduleFire, periodMs);
+      demoTimerIds.push(id);
+    }
+    const id = setTimeout(scheduleFire, initialDelayMs);
+    demoTimerIds.push(id);
+  });
+}
 
 function startDemoMode() {
   if (demoActive) return;
@@ -917,43 +1015,37 @@ function startDemoMode() {
   document.getElementById('wsDot').style.background = 'var(--vw-orange2)';
   document.getElementById('wsDot').style.boxShadow  = '0 0 6px var(--vw-orange2)';
 
-  // At 1000 RPM: 720° = 120 ms per cycle
-  // timingBase = [0°, 540°, 360°, 180°] → firing order cyl1→cyl4→cyl3→cyl2
-  const periodMs = 120000 / DEMO.rpm; // 120 ms
-
-  // ---- Cylinder spark flash: one independent setTimeout chain per cylinder ----
-  // Each fires at its own phase offset and repeats every full cycle
-  DEMO.timingBase.forEach((baseDeg, cylIdx) => {
-    const initialDelayMs = (baseDeg / 720) * periodMs; // cyl1:0 cyl4:30 cyl3:60 cyl2:90 ms
-    function flashCyl() {
-      const badge = document.getElementById('cyl' + (cylIdx + 1) + 'Badge');
-      badge.classList.add('fired');
-      setTimeout(() => badge.classList.remove('fired'), 80);
-      setTimeout(flashCyl, periodMs); // repeat every cycle
-    }
-    setTimeout(flashCyl, initialDelayMs);
-  });
+  // Start spark timers at initial RPM
+  startSparkTimers(DEMO.rpm);
 
   // ---- Gauge & crank diagram: requestAnimationFrame (time-based, 60fps) ----
-  let lastTs = null;
   function animFrame(ts) {
-    if (lastTs === null) lastTs = ts;
-    const dt = ts - lastTs;
-    lastTs = ts;
-    demoPhase = (demoPhase + (dt / periodMs) * 720) % 720;
-    // Pass firing:false — spark badges are handled by the timers above
+    if (demoRafLastTs === null) demoRafLastTs = ts;
+    const dt       = ts - demoRafLastTs;
+    demoRafLastTs  = ts;
+    const periodMs = 120000 / DEMO.rpm;
+    demoPhase      = (demoPhase + (dt / periodMs) * 720) % 720;
     updateUI({
       running:     true,
       rpm:         DEMO.rpm,
       oilPressBar: DEMO.oilPressBar,
       oilTempC:    DEMO.oilTempC,
       timing:      DEMO.timingBase,
-      firing:      [false, false, false, false]
+      firing:      [false, false, false, false] // badges handled by spark timers
     });
-    requestAnimationFrame(animFrame);
+    demoRafId = requestAnimationFrame(animFrame);
   }
-  requestAnimationFrame(animFrame);
+  demoRafId = requestAnimationFrame(animFrame);
 }
+
+// ---- RPM slider ----
+document.getElementById('rpmSlider').addEventListener('input', function () {
+  const newRpm = parseInt(this.value, 10);
+  DEMO.rpm = newRpm;
+  document.getElementById('rpmSliderLabel').textContent =
+    newRpm.toLocaleString() + ' RPM — DEMO';
+  if (demoActive) startSparkTimers(newRpm); // restart timers at new RPM
+});
 
 // ===== WebSocket connection =====
 let ws, wsReconnectTimer;
