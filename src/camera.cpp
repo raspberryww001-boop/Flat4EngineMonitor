@@ -1,4 +1,5 @@
 #include "camera.h"
+#include "config.h"
 #include <esp_camera.h>
 #include <WebServer.h>
 
@@ -23,8 +24,15 @@
 
 static WebServer _streamSrv(81);
 
+static inline void ledOn()  { digitalWrite(PIN_CAM_LED, HIGH); }
+static inline void ledOff() { digitalWrite(PIN_CAM_LED, LOW);  }
+
 // ---- MJPEG multipart stream ----
+// LED turns on when a viewer connects, off when they disconnect.
 static void handleStream() {
+    ledOn();
+    Serial.println("[Camera] Stream client connected — LED on");
+
     WiFiClient client = _streamSrv.client();
     client.print(
         "HTTP/1.1 200 OK\r\n"
@@ -50,6 +58,9 @@ static void handleStream() {
         esp_camera_fb_return(fb);
         delay(50);  // ~20 fps cap
     }
+
+    ledOff();
+    Serial.println("[Camera] Stream client disconnected — LED off");
 }
 
 // ---- Single JPEG snapshot ----
@@ -65,10 +76,24 @@ static void handleSnapshot() {
     esp_camera_fb_return(fb);
 }
 
+// ---- Manual LED control: GET /led?state=on  or  /led?state=off ----
+static void handleLed() {
+    _streamSrv.sendHeader("Access-Control-Allow-Origin", "*");
+    if (_streamSrv.hasArg("state")) {
+        String s = _streamSrv.arg("state");
+        if (s == "on")  { ledOn();  _streamSrv.send(200, "text/plain", "on");  return; }
+        if (s == "off") { ledOff(); _streamSrv.send(200, "text/plain", "off"); return; }
+    }
+    // No arg: return current state
+    _streamSrv.send(200, "text/plain",
+        digitalRead(PIN_CAM_LED) ? "on" : "off");
+}
+
 // ---- FreeRTOS task: runs stream server on core 0 ----
 static void streamTask(void* arg) {
     _streamSrv.on("/stream",   handleStream);
     _streamSrv.on("/snapshot", handleSnapshot);
+    _streamSrv.on("/led",      handleLed);
     _streamSrv.begin();
     Serial.println("[Camera] Stream server started on port 81");
     for (;;) {
@@ -78,6 +103,10 @@ static void streamTask(void* arg) {
 }
 
 bool Camera_begin() {
+    // LED pin setup
+    pinMode(PIN_CAM_LED, OUTPUT);
+    ledOff();
+
     camera_config_t cfg;
     memset(&cfg, 0, sizeof(cfg));
 
@@ -118,7 +147,6 @@ bool Camera_begin() {
         return false;
     }
 
-    // Reduce frame size if PSRAM not found (already done above via QVGA)
     Serial.println("[Camera] OV2640 initialized OK");
     return true;
 }

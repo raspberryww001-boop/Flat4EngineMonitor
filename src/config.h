@@ -15,6 +15,12 @@
 #define PIN_IGN_CYL3   14   // Cylinder 3
 #define PIN_IGN_CYL4   15   // Cylinder 4
 
+// Camera illumination LED
+// GPIO 33 is free on AI-Thinker ESP32-CAM (not used by camera, PSRAM, or SD).
+// Connect: GPIO 33 → 100Ω resistor → LED anode → LED cathode → GND
+// Active HIGH (HIGH = LED on). On-board red LED also responds to this pin.
+#define PIN_CAM_LED    33
+
 // ADC inputs — NOTE: These are ADC2 channels.
 // ADC2 is shared with the WiFi RF path and gives unreliable readings while
 // WiFi is active. Oil pressure / temperature are slow-changing values so
