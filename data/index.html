@@ -911,42 +911,48 @@ let demoPhase  = 0; // current crank angle 0–720
 function startDemoMode() {
   if (demoActive) return;
   demoActive = true;
-  document.getElementById('wsDot').className   = 'ws-dot connected';
-  document.getElementById('wsStatus').textContent = 'DEMO MODE';
-  document.getElementById('wsStatus').style.color = 'var(--vw-orange2)';
+  document.getElementById('wsDot').className        = 'ws-dot connected';
+  document.getElementById('wsStatus').textContent   = 'DEMO MODE';
+  document.getElementById('wsStatus').style.color   = 'var(--vw-orange2)';
   document.getElementById('wsDot').style.background = 'var(--vw-orange2)';
   document.getElementById('wsDot').style.boxShadow  = '0 0 6px var(--vw-orange2)';
 
-  // At 1000 RPM, 720° takes 120 ms. Step size ~60fps = 16ms → ~96°/step
-  // Using "crossed the angle" detection instead of "within window" to avoid
-  // skipping cylinders when degPerStep > firing window size
-  const periodMs   = 120000 / DEMO.rpm; // ms for full 720° cycle
-  const stepMs     = 16;                 // ~60 fps
-  const degPerStep = (720 / periodMs) * stepMs;
+  // At 1000 RPM: 720° = 120 ms per cycle
+  // timingBase = [0°, 540°, 360°, 180°] → firing order cyl1→cyl4→cyl3→cyl2
+  const periodMs = 120000 / DEMO.rpm; // 120 ms
 
-  demoTimer = setInterval(() => {
-    const prevPhase = demoPhase;
-    demoPhase = (demoPhase + degPerStep) % 720;
+  // ---- Cylinder spark flash: one independent setTimeout chain per cylinder ----
+  // Each fires at its own phase offset and repeats every full cycle
+  DEMO.timingBase.forEach((baseDeg, cylIdx) => {
+    const initialDelayMs = (baseDeg / 720) * periodMs; // cyl1:0 cyl4:30 cyl3:60 cyl2:90 ms
+    function flashCyl() {
+      const badge = document.getElementById('cyl' + (cylIdx + 1) + 'Badge');
+      badge.classList.add('fired');
+      setTimeout(() => badge.classList.remove('fired'), 80);
+      setTimeout(flashCyl, periodMs); // repeat every cycle
+    }
+    setTimeout(flashCyl, initialDelayMs);
+  });
 
-    // Fire when the crank angle CROSSED each cylinder's base angle in this step
-    const firingNow = DEMO.timingBase.map(base => {
-      const b = ((base % 720) + 720) % 720;
-      if (demoPhase >= prevPhase) {
-        return b >= prevPhase && b < demoPhase;        // normal step
-      } else {
-        return b >= prevPhase || b < demoPhase;        // wrapped past 720°
-      }
-    });
-
+  // ---- Gauge & crank diagram: requestAnimationFrame (time-based, 60fps) ----
+  let lastTs = null;
+  function animFrame(ts) {
+    if (lastTs === null) lastTs = ts;
+    const dt = ts - lastTs;
+    lastTs = ts;
+    demoPhase = (demoPhase + (dt / periodMs) * 720) % 720;
+    // Pass firing:false — spark badges are handled by the timers above
     updateUI({
       running:     true,
       rpm:         DEMO.rpm,
       oilPressBar: DEMO.oilPressBar,
       oilTempC:    DEMO.oilTempC,
       timing:      DEMO.timingBase,
-      firing:      firingNow
+      firing:      [false, false, false, false]
     });
-  }, stepMs);
+    requestAnimationFrame(animFrame);
+  }
+  requestAnimationFrame(animFrame);
 }
 
 // ===== WebSocket connection =====
