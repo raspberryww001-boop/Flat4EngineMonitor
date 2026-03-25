@@ -5,22 +5,24 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Flat4 Engine Monitor</title>
 <style>
-/* ===== VW Type 2 / Bulli Color Theme ===== */
+/* ===== Theme variables (overridden per theme via JS) ===== */
 :root {
-  --vw-blue:      #003DA5;
-  --vw-cream:     #F5F0DC;
-  --vw-orange:    #E8600A;
-  --vw-orange2:   #FF8C42;
-  --vw-red:       #C0392B;
-  --vw-green:     #27AE60;
-  --vw-dark:      #1A1A2E;
-  --vw-panel:     #0D2137;
-  --vw-chrome:    #C9B88A;
-  --vw-chrome2:   #E5D5A3;
-  --text-light:   #F5F0DC;
-  --text-dim:     #A0956E;
-  --gauge-bg:     #0A1628;
-  --gauge-ring:   #1E3A5F;
+  --vw-blue:        #003DA5;
+  --vw-blue-dark:   #002880;
+  --vw-cream:       #F5F0DC;
+  --vw-orange:      #E8600A;
+  --vw-orange-dark: var(--vw-orange-dark);
+  --vw-orange2:     #FF8C42;
+  --vw-red:         #C0392B;
+  --vw-green:       #27AE60;
+  --vw-dark:        #1A1A2E;
+  --vw-panel:       #0D2137;
+  --vw-chrome:      #C9B88A;
+  --vw-chrome2:     #E5D5A3;
+  --text-light:     #F5F0DC;
+  --text-dim:       #A0956E;
+  --gauge-bg:       #0A1628;
+  --gauge-ring:     #1E3A5F;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -35,7 +37,7 @@ body {
 
 /* ===== VW Type 2 Top Header Bar ===== */
 .vw-header {
-  background: linear-gradient(180deg, var(--vw-blue) 60%, #002880 100%);
+  background: linear-gradient(180deg, var(--vw-blue) 60%, var(--vw-blue-dark) 100%);
   border-bottom: 6px solid var(--vw-chrome);
   padding: 12px 24px;
   display: flex;
@@ -128,8 +130,8 @@ body {
 .vw-split {
   background: var(--vw-orange);
   height: 12px;
-  border-top: 2px solid #c0500a;
-  border-bottom: 2px solid #c0500a;
+  border-top: 2px solid var(--vw-orange-dark);
+  border-bottom: 2px solid var(--vw-orange-dark);
   margin: 20px 0 0;
 }
 
@@ -503,10 +505,10 @@ body {
 .btn-primary {
   background: var(--vw-orange);
   color: white;
-  border: 1px solid #c0500a;
+  border: 1px solid var(--vw-orange-dark);
 }
 
-.btn-primary:hover { background: #c0500a; }
+.btn-primary:hover { background: var(--vw-orange-dark); }
 
 .btn-secondary {
   background: transparent;
@@ -531,7 +533,7 @@ body {
 /* ===== VW bus bottom strip ===== */
 .vw-footer {
   background: var(--vw-orange);
-  border-top: 3px solid #c0500a;
+  border-top: 3px solid var(--vw-orange-dark);
   padding: 8px 24px;
   display: flex;
   align-items: center;
@@ -562,6 +564,190 @@ body {
 
 .ws-dot.connected { background: #fff; box-shadow: 0 0 6px #fff; }
 
+/* ===== Camera Panel ===== */
+.card-camera {
+  grid-column: 1 / 4;
+  grid-row: 3;
+  flex-direction: column;
+  align-items: stretch;
+  padding: 24px;
+}
+
+.cam-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.cam-header h2 {
+  font-size: 0.75rem;
+  letter-spacing: 4px;
+  color: var(--vw-chrome);
+  text-transform: uppercase;
+}
+
+.cam-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.6rem;
+  letter-spacing: 1px;
+  color: var(--text-dim);
+  padding: 4px 12px;
+  border: 1px solid var(--gauge-ring);
+  border-radius: 20px;
+  transition: all 0.3s;
+}
+
+.cam-badge.live {
+  color: var(--vw-green);
+  border-color: var(--vw-green);
+  box-shadow: 0 0 8px rgba(39,174,96,0.3);
+}
+
+.cam-badge.error {
+  color: var(--vw-red);
+  border-color: var(--vw-red);
+}
+
+.cam-viewport {
+  width: 100%;
+  background: var(--gauge-bg);
+  border: 2px solid var(--gauge-ring);
+  border-radius: 8px;
+  overflow: hidden;
+  position: relative;
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cam-img {
+  width: 100%;
+  height: auto;
+  display: block;
+  max-height: 360px;
+  object-fit: contain;
+}
+
+.cam-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-dim);
+  font-size: 0.65rem;
+  letter-spacing: 2px;
+  padding: 40px 24px;
+  text-align: center;
+}
+
+.cam-placeholder svg {
+  opacity: 0.4;
+}
+
+.cam-btn-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+
+.cam-btn-row .btn {
+  flex: 0 0 auto;
+  min-width: 120px;
+}
+
+/* ===== Theme Switcher ===== */
+.theme-btn {
+  position: fixed;
+  bottom: 88px; right: 24px;
+  width: 52px; height: 52px;
+  border-radius: 50%;
+  background: var(--vw-panel);
+  border: 2px solid var(--vw-chrome);
+  color: var(--vw-cream);
+  font-size: 1.2rem;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+  transition: all 0.2s;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 100;
+}
+
+.theme-btn:hover {
+  background: var(--vw-blue);
+  transform: rotate(20deg);
+}
+
+.theme-panel {
+  position: fixed;
+  bottom: 152px; right: 24px;
+  background: var(--vw-panel);
+  border: 2px solid var(--vw-blue);
+  border-top: 4px solid var(--vw-orange);
+  border-radius: 14px;
+  padding: 14px;
+  z-index: 200;
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 200px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.7);
+}
+
+.theme-panel.open { display: flex; }
+
+.theme-panel-title {
+  font-size: 0.6rem;
+  letter-spacing: 3px;
+  color: var(--vw-chrome);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--gauge-ring);
+}
+
+.theme-swatch {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all 0.15s;
+  background: var(--gauge-bg);
+}
+
+.theme-swatch:hover { border-color: var(--vw-chrome); }
+
+.theme-swatch.active {
+  border-color: var(--vw-orange);
+  background: rgba(255,255,255,0.05);
+}
+
+.swatch-dots {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.swatch-dot {
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.15);
+}
+
+.swatch-label {
+  font-size: 0.65rem;
+  letter-spacing: 2px;
+  color: var(--text-light);
+  text-transform: uppercase;
+}
+
 /* Responsive */
 @media(max-width:768px) {
   .dashboard {
@@ -573,12 +759,13 @@ body {
   .card-oilpress { grid-column: 2 / 3; }
   .card-oiltemp { grid-column: 1 / 3; }
   .card-timing { grid-column: 1 / 3; }
+  .card-camera { grid-column: 1 / 3; }
   .timing-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
 @media(max-width:480px) {
   .dashboard { grid-template-columns: 1fr; }
-  .card-oilpress, .card-oiltemp, .card-timing { grid-column: 1; }
+  .card-oilpress, .card-oiltemp, .card-timing, .card-camera { grid-column: 1; }
   .card-oiltemp { grid-row: auto; }
   .timing-grid { grid-template-columns: repeat(2, 1fr); }
 }
@@ -768,6 +955,33 @@ body {
 
   </div><!-- end timing card -->
 
+  <!-- Camera Card -->
+  <div class="gauge-card card-camera">
+    <div class="cam-header">
+      <h2>Engine Camera</h2>
+      <div class="cam-badge" id="camBadge">&#9679; OFFLINE</div>
+    </div>
+    <div class="cam-viewport" id="camViewport">
+      <div class="cam-placeholder" id="camPlaceholder">
+        <svg width="52" height="52" viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="4" y="14" width="44" height="30" rx="4" stroke="currentColor" stroke-width="2"/>
+          <circle cx="26" cy="29" r="8" stroke="currentColor" stroke-width="2"/>
+          <path d="M20 14 L22 8 H30 L32 14" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+          <circle cx="26" cy="29" r="3" fill="currentColor" opacity="0.5"/>
+        </svg>
+        <span>CAMERA STREAM OFFLINE</span>
+        <span style="font-size:0.55rem;opacity:0.6;letter-spacing:1px;">PRESS START TO CONNECT &bull; PORT 81</span>
+      </div>
+      <img class="cam-img" id="camImg" alt="Engine Camera" style="display:none">
+    </div>
+    <div class="cam-btn-row">
+      <button class="btn btn-primary"   id="camStartBtn">&#9654; START</button>
+      <button class="btn btn-secondary" id="camStopBtn"  style="display:none">&#9646;&#9646; STOP</button>
+      <button class="btn btn-secondary" id="camSnapBtn">&#9685; SNAPSHOT</button>
+      <button class="btn btn-secondary" id="camLedBtn">&#9728; LED OFF</button>
+    </div>
+  </div>
+
 </main>
 
 <!-- ===== Footer ===== -->
@@ -782,6 +996,13 @@ body {
 
 <!-- ===== Settings Button ===== -->
 <button class="settings-btn" id="settingsBtn" title="WiFi Settings">&#9881;</button>
+
+<!-- ===== Theme Switcher ===== -->
+<button class="theme-btn" id="themeBtn" title="Change Theme">&#9681;</button>
+<div class="theme-panel" id="themePanel">
+  <div class="theme-panel-title">Display Theme</div>
+  <!-- Swatches populated by JS -->
+</div>
 
 <!-- ===== Settings Modal ===== -->
 <div class="modal-overlay" id="modalOverlay">
@@ -804,6 +1025,148 @@ body {
 </div>
 
 <script>
+// ===== Theme Switcher =====
+const THEMES = [
+  {
+    id: 'bulli',
+    name: 'Bulli Classic',
+    dots: ['#003DA5', '#E8600A'],
+    vars: {
+      '--vw-blue':        '#003DA5',
+      '--vw-blue-dark':   '#002880',
+      '--vw-cream':       '#F5F0DC',
+      '--vw-orange':      '#E8600A',
+      '--vw-orange-dark': '#c0500a',
+      '--vw-orange2':     '#FF8C42',
+      '--vw-red':         '#C0392B',
+      '--vw-green':       '#27AE60',
+      '--vw-dark':        '#1A1A2E',
+      '--vw-panel':       '#0D2137',
+      '--vw-chrome':      '#C9B88A',
+      '--vw-chrome2':     '#E5D5A3',
+      '--text-light':     '#F5F0DC',
+      '--text-dim':       '#A0956E',
+      '--gauge-bg':       '#0A1628',
+      '--gauge-ring':     '#1E3A5F',
+    }
+  },
+  {
+    id: 'rally',
+    name: 'Rally Red',
+    dots: ['#7B0000', '#FF2D00'],
+    vars: {
+      '--vw-blue':        '#7B0000',
+      '--vw-blue-dark':   '#4A0000',
+      '--vw-cream':       '#F5F5F5',
+      '--vw-orange':      '#FF2D00',
+      '--vw-orange-dark': '#C42200',
+      '--vw-orange2':     '#FF5733',
+      '--vw-red':         '#FF0000',
+      '--vw-green':       '#27AE60',
+      '--vw-dark':        '#0D0000',
+      '--vw-panel':       '#1A0505',
+      '--vw-chrome':      '#C0C0C0',
+      '--vw-chrome2':     '#E0E0E0',
+      '--text-light':     '#F5F5F5',
+      '--text-dim':       '#9E9E9E',
+      '--gauge-bg':       '#0A0000',
+      '--gauge-ring':     '#3D0000',
+    }
+  },
+  {
+    id: 'phosphor',
+    name: 'Phosphor',
+    dots: ['#002200', '#00FF41'],
+    vars: {
+      '--vw-blue':        '#003300',
+      '--vw-blue-dark':   '#001800',
+      '--vw-cream':       '#00FF41',
+      '--vw-orange':      '#00CC33',
+      '--vw-orange-dark': '#009922',
+      '--vw-orange2':     '#00FF55',
+      '--vw-red':         '#FF4444',
+      '--vw-green':       '#00FF41',
+      '--vw-dark':        '#000800',
+      '--vw-panel':       '#001200',
+      '--vw-chrome':      '#00AA22',
+      '--vw-chrome2':     '#00DD33',
+      '--text-light':     '#00FF41',
+      '--text-dim':       '#007722',
+      '--gauge-bg':       '#000500',
+      '--gauge-ring':     '#003300',
+    }
+  },
+  {
+    id: 'desert',
+    name: 'Desert Sand',
+    dots: ['#5C3A1E', '#D4861A'],
+    vars: {
+      '--vw-blue':        '#5C3A1E',
+      '--vw-blue-dark':   '#3A2000',
+      '--vw-cream':       '#F5E6C8',
+      '--vw-orange':      '#D4861A',
+      '--vw-orange-dark': '#A86010',
+      '--vw-orange2':     '#E8A030',
+      '--vw-red':         '#B03030',
+      '--vw-green':       '#6B8E23',
+      '--vw-dark':        '#1A0F00',
+      '--vw-panel':       '#2A1800',
+      '--vw-chrome':      '#C9A86A',
+      '--vw-chrome2':     '#E5C888',
+      '--text-light':     '#F5E6C8',
+      '--text-dim':       '#A07840',
+      '--gauge-bg':       '#120A00',
+      '--gauge-ring':     '#3D2200',
+    }
+  }
+];
+
+(function() {
+  const root      = document.documentElement;
+  const panel     = document.getElementById('themePanel');
+  const themeBtn  = document.getElementById('themeBtn');
+  let   activeId  = localStorage.getItem('flat4theme') || 'bulli';
+
+  function applyTheme(id) {
+    const t = THEMES.find(x => x.id === id) || THEMES[0];
+    for (const [k, v] of Object.entries(t.vars)) root.style.setProperty(k, v);
+    activeId = t.id;
+    localStorage.setItem('flat4theme', t.id);
+    panel.querySelectorAll('.theme-swatch').forEach(el =>
+      el.classList.toggle('active', el.dataset.id === t.id));
+  }
+
+  // Build swatches
+  THEMES.forEach(t => {
+    const el = document.createElement('div');
+    el.className = 'theme-swatch';
+    el.dataset.id = t.id;
+    el.innerHTML =
+      '<div class="swatch-dots">' +
+        t.dots.map(c => `<div class="swatch-dot" style="background:${c}"></div>`).join('') +
+      '</div>' +
+      `<span class="swatch-label">${t.name}</span>`;
+    el.addEventListener('click', () => { applyTheme(t.id); panel.classList.remove('open'); });
+    panel.appendChild(el);
+  });
+
+  // Apply saved theme immediately
+  applyTheme(activeId);
+
+  // Toggle panel
+  themeBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    panel.classList.toggle('open');
+  });
+
+  // Close on outside click
+  document.addEventListener('click', e => {
+    if (!e.target.closest('#themePanel') && !e.target.closest('#themeBtn')) {
+      panel.classList.remove('open');
+    }
+  });
+})();
+
 // ===== Arc path helpers =====
 function polarToXY(cx, cy, r, angleDeg) {
   const rad = (angleDeg - 90) * Math.PI / 180;
@@ -1005,6 +1368,91 @@ function connectWS() {
 }
 
 connectWS();
+
+// ===== Camera Controls =====
+(function() {
+  const camImg      = document.getElementById('camImg');
+  const camPH       = document.getElementById('camPlaceholder');
+  const camBadge    = document.getElementById('camBadge');
+  const camStartBtn = document.getElementById('camStartBtn');
+  const camStopBtn  = document.getElementById('camStopBtn');
+  const camSnapBtn  = document.getElementById('camSnapBtn');
+  const camLedBtn   = document.getElementById('camLedBtn');
+
+  let ledState = false;  // tracks LED on/off
+
+  function camBaseUrl() {
+    return `http://${window.location.hostname}:81`;
+  }
+
+  function isLive() {
+    const h = window.location.hostname;
+    return h && h !== 'localhost' && h !== '127.0.0.1';
+  }
+
+  // ---- LED helpers ----
+  function setLedBtn(on) {
+    ledState = on;
+    camLedBtn.textContent = on ? '\u9728 LED ON' : '\u9728 LED OFF';
+    camLedBtn.className   = on ? 'btn btn-primary' : 'btn btn-secondary';
+  }
+
+  function sendLed(on) {
+    if (!isLive()) return;
+    fetch(camBaseUrl() + '/led?state=' + (on ? 'on' : 'off'))
+      .then(r => r.text())
+      .then(s => setLedBtn(s === 'on'))
+      .catch(() => {});
+  }
+
+  camLedBtn.addEventListener('click', function() {
+    sendLed(!ledState);
+  });
+
+  // ---- Stream controls ----
+  function startStream() {
+    if (!isLive()) {
+      camBadge.textContent = '\u25CF DEMO \u2014 no stream';
+      camBadge.className = 'cam-badge';
+      return;
+    }
+    camImg.src = camBaseUrl() + '/stream';
+    camImg.style.display = 'block';
+    camPH.style.display  = 'none';
+    camBadge.textContent = '\u25CF LIVE';
+    camBadge.className   = 'cam-badge live';
+    camStartBtn.style.display = 'none';
+    camStopBtn.style.display  = '';
+    // LED turns on automatically server-side when stream connects,
+    // but sync the button state after a short delay.
+    setTimeout(() => { if (isLive()) sendLed(true); }, 500);
+  }
+
+  function stopStream() {
+    camImg.src = '';
+    camImg.style.display = 'none';
+    camPH.style.display  = 'flex';
+    camBadge.textContent = '\u25CF OFFLINE';
+    camBadge.className   = 'cam-badge';
+    camStartBtn.style.display = '';
+    camStopBtn.style.display  = 'none';
+    sendLed(false);
+  }
+
+  camImg.onerror = function() {
+    stopStream();
+    camBadge.textContent = '\u25CF ERROR';
+    camBadge.className   = 'cam-badge error';
+  };
+
+  camStartBtn.addEventListener('click', startStream);
+  camStopBtn.addEventListener('click', stopStream);
+
+  camSnapBtn.addEventListener('click', function() {
+    if (!isLive()) return;
+    window.open(camBaseUrl() + '/snapshot', '_blank');
+  });
+})();
 
 // Fallback polling (only when WS is closed AND not in demo mode)
 setInterval(() => {

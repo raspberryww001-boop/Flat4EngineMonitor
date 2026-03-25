@@ -63,18 +63,18 @@ body {
 }
 
 .vw-badge {
-  width: 56px; height: 56px;
-  background: var(--vw-chrome);
+  width: 64px; height: 64px;
+  background: #0D2137;
   border-radius: 50%;
-  border: 3px solid var(--vw-chrome2);
+  border: 3px solid var(--vw-chrome);
   display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 0 16px rgba(201,184,138,0.5);
+  box-shadow: 0 0 16px rgba(201,184,138,0.4), 0 0 32px rgba(232,96,10,0.15);
   position: relative;
   overflow: hidden;
 }
 
-/* VW logo SVG */
-.vw-badge svg { width: 36px; height: 36px; }
+/* Flat-4 engine SVG */
+.vw-badge svg { width: 60px; height: 60px; }
 
 .vw-title-block h1 {
   font-size: 1.4rem;
@@ -390,6 +390,60 @@ body {
 
 .crank-marker.cyl1 { background: var(--vw-chrome); box-shadow: 0 0 8px var(--vw-chrome); }
 
+.crank-marker.fired {
+  background: #fff !important;
+  box-shadow: 0 0 16px #fff, 0 0 6px var(--vw-orange2) !important;
+  transform: translateX(-50%) scale(2.2);
+  z-index: 2;
+}
+
+/* ===== RPM Slider (demo only) ===== */
+.rpm-slider-wrap {
+  width: 100%;
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.rpm-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--vw-blue), var(--vw-orange));
+  outline: none;
+  cursor: pointer;
+}
+
+.rpm-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: var(--vw-chrome);
+  border: 2px solid var(--vw-dark);
+  box-shadow: 0 0 6px rgba(201,184,138,0.5);
+  cursor: pointer;
+}
+
+.rpm-slider::-moz-range-thumb {
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: var(--vw-chrome);
+  border: 2px solid var(--vw-dark);
+  cursor: pointer;
+}
+
+.rpm-slider-label {
+  font-size: 0.6rem;
+  letter-spacing: 2px;
+  color: var(--vw-orange2);
+  text-transform: uppercase;
+}
+
 /* ===== Settings Modal ===== */
 .settings-btn {
   position: fixed;
@@ -590,15 +644,88 @@ body {
 <header class="vw-header">
   <div class="vw-logo-area">
     <div class="vw-badge">
-      <!-- VW Logo -->
+      <!-- Flat-4 Boxer Engine (top-down cross-section schematic) -->
       <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="50" cy="50" r="48" fill="#003DA5" stroke="#1A1A2E" stroke-width="2"/>
-        <path d="M50 10 C28 10 10 28 10 50 C10 72 28 90 50 90 C72 90 90 72 90 50 C90 28 72 10 50 10Z" fill="#003DA5"/>
-        <!-- V shape -->
-        <path d="M30 28 L50 65 L70 28 L62 28 L50 55 L38 28 Z" fill="white"/>
-        <!-- W shape lower -->
-        <path d="M22 38 L32 65 L42 45 L50 68 L58 45 L68 65 L78 38 L70 38 L62 58 L50 35 L38 58 L30 38 Z" fill="white" opacity="0"/>
-        <text x="50" y="72" text-anchor="middle" font-family="Arial Black" font-weight="900" font-size="22" fill="white" letter-spacing="-2">VW</text>
+        <!-- Badge background -->
+        <circle cx="50" cy="50" r="49" fill="#0D2137"/>
+
+        <!-- ─── LEFT BANK ─── -->
+        <!-- Cylinder 1 bore (front-left) -->
+        <rect x="3" y="15" width="35" height="21" rx="2.5" fill="#091E36" stroke="#C9B88A" stroke-width="1.5"/>
+        <!-- Cylinder 3 bore (rear-left) -->
+        <rect x="3" y="64" width="35" height="21" rx="2.5" fill="#091E36" stroke="#C9B88A" stroke-width="1.5"/>
+
+        <!-- ─── RIGHT BANK ─── -->
+        <!-- Cylinder 2 bore (front-right) -->
+        <rect x="62" y="15" width="35" height="21" rx="2.5" fill="#091E36" stroke="#C9B88A" stroke-width="1.5"/>
+        <!-- Cylinder 4 bore (rear-right) -->
+        <rect x="62" y="64" width="35" height="21" rx="2.5" fill="#091E36" stroke="#C9B88A" stroke-width="1.5"/>
+
+        <!-- ─── Connecting rods (piston face → crankcase wall) ─── -->
+        <!-- Cyl1: BDC (piston near center) — short rod -->
+        <line x1="24" y1="25.5" x2="38" y2="25.5" stroke="#7A6428" stroke-width="2.5" stroke-linecap="round"/>
+        <!-- Cyl3: TDC (piston near outside) — long rod -->
+        <line x1="19" y1="74.5" x2="38" y2="74.5" stroke="#7A6428" stroke-width="2.5" stroke-linecap="round"/>
+        <!-- Cyl2: TDC (piston near outside) — long rod -->
+        <line x1="81" y1="25.5" x2="62" y2="25.5" stroke="#7A6428" stroke-width="2.5" stroke-linecap="round"/>
+        <!-- Cyl4: BDC (piston near center) — short rod -->
+        <line x1="76" y1="74.5" x2="62" y2="74.5" stroke="#7A6428" stroke-width="2.5" stroke-linecap="round"/>
+
+        <!-- ─── Crankcase body (drawn over con rod ends) ─── -->
+        <rect x="38" y="10" width="24" height="80" rx="3" fill="#152C48" stroke="#C9B88A" stroke-width="1.5"/>
+
+        <!-- Crankshaft axis line -->
+        <line x1="50" y1="14" x2="50" y2="86" stroke="#E8600A" stroke-width="1.5" stroke-dasharray="3 2.5" opacity="0.55"/>
+
+        <!-- Crank throw — top pair (cyl 1 & 2) — offset left -->
+        <circle cx="43" cy="25.5" r="5" fill="#C04000" stroke="#E8600A" stroke-width="1.5"/>
+        <circle cx="43" cy="25.5" r="1.8" fill="#FF8C42"/>
+
+        <!-- Crank throw — bottom pair (cyl 3 & 4) — offset right -->
+        <circle cx="57" cy="74.5" r="5" fill="#C04000" stroke="#E8600A" stroke-width="1.5"/>
+        <circle cx="57" cy="74.5" r="1.8" fill="#FF8C42"/>
+
+        <!-- Center main bearing journal -->
+        <circle cx="50" cy="50" r="6" fill="#1E3A5F" stroke="#C9B88A" stroke-width="1.8"/>
+        <circle cx="50" cy="50" r="3" fill="#C9B88A"/>
+        <circle cx="50" cy="50" r="1.2" fill="#0D2137"/>
+
+        <!-- ─── Pistons ─── -->
+        <!-- Cyl1: BDC (near center) -->
+        <rect x="20" y="17.5" width="16" height="16" rx="2.5" fill="#B8A070" stroke="#A08850" stroke-width="1"/>
+        <line x1="23" y1="17.5" x2="23" y2="33.5" stroke="#7A6428" stroke-width="1"/>
+        <line x1="27" y1="17.5" x2="27" y2="33.5" stroke="#7A6428" stroke-width="1"/>
+        <circle cx="28" cy="25.5" r="2" fill="#0A1628"/>
+
+        <!-- Cyl3: TDC (near outside) -->
+        <rect x="4" y="66.5" width="16" height="16" rx="2.5" fill="#B8A070" stroke="#A08850" stroke-width="1"/>
+        <line x1="7" y1="66.5" x2="7" y2="82.5" stroke="#7A6428" stroke-width="1"/>
+        <line x1="11" y1="66.5" x2="11" y2="82.5" stroke="#7A6428" stroke-width="1"/>
+        <circle cx="12" cy="74.5" r="2" fill="#0A1628"/>
+
+        <!-- Cyl2: TDC (near outside) -->
+        <rect x="80" y="17.5" width="16" height="16" rx="2.5" fill="#B8A070" stroke="#A08850" stroke-width="1"/>
+        <line x1="83" y1="17.5" x2="83" y2="33.5" stroke="#7A6428" stroke-width="1"/>
+        <line x1="87" y1="17.5" x2="87" y2="33.5" stroke="#7A6428" stroke-width="1"/>
+        <circle cx="88" cy="25.5" r="2" fill="#0A1628"/>
+
+        <!-- Cyl4: BDC (near center) -->
+        <rect x="64" y="66.5" width="16" height="16" rx="2.5" fill="#B8A070" stroke="#A08850" stroke-width="1"/>
+        <line x1="67" y1="66.5" x2="67" y2="82.5" stroke="#7A6428" stroke-width="1"/>
+        <line x1="71" y1="66.5" x2="71" y2="82.5" stroke="#7A6428" stroke-width="1"/>
+        <circle cx="72" cy="74.5" r="2" fill="#0A1628"/>
+
+        <!-- ─── Cylinder labels ─── -->
+        <text x="5"  y="13"  font-size="8" font-family="monospace" fill="#A08850" font-weight="bold">1</text>
+        <text x="5"  y="62"  font-size="8" font-family="monospace" fill="#A08850" font-weight="bold">3</text>
+        <text x="89" y="13"  font-size="8" font-family="monospace" fill="#A08850" font-weight="bold">2</text>
+        <text x="89" y="62"  font-size="8" font-family="monospace" fill="#A08850" font-weight="bold">4</text>
+
+        <!-- ─── Spark plug tips (outer end of each bore) ─── -->
+        <circle cx="4"  cy="25.5" r="2.5" fill="#FF8C42" opacity="0.7"/>
+        <circle cx="4"  cy="74.5" r="2.5" fill="#FF8C42" opacity="0.4"/>
+        <circle cx="96" cy="25.5" r="2.5" fill="#FF8C42" opacity="0.4"/>
+        <circle cx="96" cy="74.5" r="2.5" fill="#FF8C42" opacity="0.7"/>
       </svg>
     </div>
     <div class="vw-title-block">
@@ -639,6 +766,11 @@ body {
       <div class="gauge-value" id="rpmValue">0</div>
     </div>
     <div class="gauge-unit">RPM</div>
+    <div class="rpm-slider-wrap">
+      <input type="range" class="rpm-slider" id="rpmSlider"
+             min="500" max="8000" step="100" value="1000">
+      <div class="rpm-slider-label" id="rpmSliderLabel">1,000 RPM — DEMO</div>
+    </div>
   </div>
 
   <!-- Oil Pressure Card -->
@@ -904,9 +1036,48 @@ const DEMO = {
   timingBase: [0, 540, 360, 180]
 };
 
-let demoActive = false;
-let demoTimer  = null;
-let demoPhase  = 0; // current crank angle 0–720
+let demoActive      = false;
+let demoPhase       = 0;           // current crank angle 0–720
+let demoTimerIds    = [];          // all active setTimeout IDs (for cancellation)
+let demoRafId       = null;        // requestAnimationFrame ID
+let demoRafLastTs   = null;        // last rAF timestamp
+
+// Flash the badge and crank-diagram marker for cylinder cylIdx (0-based)
+function flashCylinder(cylIdx, flashMs) {
+  const n     = cylIdx + 1;
+  const badge  = document.getElementById('cyl' + n + 'Badge');
+  const marker = document.getElementById('mark' + n);
+  badge.classList.add('fired');
+  marker.classList.add('fired');
+  setTimeout(() => {
+    badge.classList.remove('fired');
+    marker.classList.remove('fired');
+  }, flashMs);
+}
+
+// Cancel all running demo spark timers (does NOT stop rAF)
+function clearDemoTimers() {
+  demoTimerIds.forEach(id => clearTimeout(id));
+  demoTimerIds = [];
+}
+
+// Start (or restart) the per-cylinder spark timers at the given RPM
+function startSparkTimers(rpm) {
+  clearDemoTimers();
+  const periodMs = 120000 / rpm;
+  const flashMs  = Math.min(80, periodMs * 0.25); // flash duration scales with RPM
+
+  DEMO.timingBase.forEach((baseDeg, cylIdx) => {
+    const initialDelayMs = (baseDeg / 720) * periodMs;
+    function scheduleFire() {
+      flashCylinder(cylIdx, flashMs);
+      const id = setTimeout(scheduleFire, periodMs);
+      demoTimerIds.push(id);
+    }
+    const id = setTimeout(scheduleFire, initialDelayMs);
+    demoTimerIds.push(id);
+  });
+}
 
 function startDemoMode() {
   if (demoActive) return;
@@ -917,43 +1088,37 @@ function startDemoMode() {
   document.getElementById('wsDot').style.background = 'var(--vw-orange2)';
   document.getElementById('wsDot').style.boxShadow  = '0 0 6px var(--vw-orange2)';
 
-  // At 1000 RPM: 720° = 120 ms per cycle
-  // timingBase = [0°, 540°, 360°, 180°] → firing order cyl1→cyl4→cyl3→cyl2
-  const periodMs = 120000 / DEMO.rpm; // 120 ms
-
-  // ---- Cylinder spark flash: one independent setTimeout chain per cylinder ----
-  // Each fires at its own phase offset and repeats every full cycle
-  DEMO.timingBase.forEach((baseDeg, cylIdx) => {
-    const initialDelayMs = (baseDeg / 720) * periodMs; // cyl1:0 cyl4:30 cyl3:60 cyl2:90 ms
-    function flashCyl() {
-      const badge = document.getElementById('cyl' + (cylIdx + 1) + 'Badge');
-      badge.classList.add('fired');
-      setTimeout(() => badge.classList.remove('fired'), 80);
-      setTimeout(flashCyl, periodMs); // repeat every cycle
-    }
-    setTimeout(flashCyl, initialDelayMs);
-  });
+  // Start spark timers at initial RPM
+  startSparkTimers(DEMO.rpm);
 
   // ---- Gauge & crank diagram: requestAnimationFrame (time-based, 60fps) ----
-  let lastTs = null;
   function animFrame(ts) {
-    if (lastTs === null) lastTs = ts;
-    const dt = ts - lastTs;
-    lastTs = ts;
-    demoPhase = (demoPhase + (dt / periodMs) * 720) % 720;
-    // Pass firing:false — spark badges are handled by the timers above
+    if (demoRafLastTs === null) demoRafLastTs = ts;
+    const dt       = ts - demoRafLastTs;
+    demoRafLastTs  = ts;
+    const periodMs = 120000 / DEMO.rpm;
+    demoPhase      = (demoPhase + (dt / periodMs) * 720) % 720;
     updateUI({
       running:     true,
       rpm:         DEMO.rpm,
       oilPressBar: DEMO.oilPressBar,
       oilTempC:    DEMO.oilTempC,
       timing:      DEMO.timingBase,
-      firing:      [false, false, false, false]
+      firing:      [false, false, false, false] // badges handled by spark timers
     });
-    requestAnimationFrame(animFrame);
+    demoRafId = requestAnimationFrame(animFrame);
   }
-  requestAnimationFrame(animFrame);
+  demoRafId = requestAnimationFrame(animFrame);
 }
+
+// ---- RPM slider ----
+document.getElementById('rpmSlider').addEventListener('input', function () {
+  const newRpm = parseInt(this.value, 10);
+  DEMO.rpm = newRpm;
+  document.getElementById('rpmSliderLabel').textContent =
+    newRpm.toLocaleString() + ' RPM — DEMO';
+  if (demoActive) startSparkTimers(newRpm); // restart timers at new RPM
+});
 
 // ===== WebSocket connection =====
 let ws, wsReconnectTimer;

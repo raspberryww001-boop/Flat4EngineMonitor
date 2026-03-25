@@ -3,15 +3,30 @@
 #include <Preferences.h>
 
 // === GPIO Pin Definitions ===
-// Ignition timing inputs (TTL-level signals from conversion circuit)
-#define PIN_IGN_CYL1   32   // Cylinder 1 (reference)
-#define PIN_IGN_CYL2   33   // Cylinder 2
-#define PIN_IGN_CYL3   25   // Cylinder 3
-#define PIN_IGN_CYL4   26   // Cylinder 4
+// Reassigned for ESP32-CAM (AI-Thinker) compatibility.
+// Camera module occupies: GPIO 0,5,18,19,21,22,23,25,26,27,32,34,35,36,39
+// PSRAM occupies: GPIO 16,17
+// Available for application: GPIO 2,4,12,13,14,15
 
-// ADC inputs
-#define PIN_OIL_PRESS  34   // Oil pressure sensor (ADC)
-#define PIN_OIL_TEMP   35   // Oil temperature sensor (ADC)
+// Ignition timing inputs (TTL-level signals from conversion circuit)
+// GPIO 12–15 are shared with SD card slot; SD card must NOT be inserted.
+#define PIN_IGN_CYL1   12   // Cylinder 1 (reference)
+#define PIN_IGN_CYL2   13   // Cylinder 2
+#define PIN_IGN_CYL3   14   // Cylinder 3
+#define PIN_IGN_CYL4   15   // Cylinder 4
+
+// Camera illumination LED
+// GPIO 33 is free on AI-Thinker ESP32-CAM (not used by camera, PSRAM, or SD).
+// Connect: GPIO 33 → 100Ω resistor → LED anode → LED cathode → GND
+// Active HIGH (HIGH = LED on). On-board red LED also responds to this pin.
+#define PIN_CAM_LED    33
+
+// ADC inputs — NOTE: These are ADC2 channels.
+// ADC2 is shared with the WiFi RF path and gives unreliable readings while
+// WiFi is active. Oil pressure / temperature are slow-changing values so
+// brief dropout or jitter is tolerable for this application.
+#define PIN_OIL_PRESS   2   // Oil pressure sensor (ADC2_CH2)
+#define PIN_OIL_TEMP    4   // Oil temperature sensor (ADC2_CH0)
 
 // === ADC Calibration ===
 // Oil pressure: 0–10 bar -> 0.5–4.5V (100–900 in 12-bit ADC range at 3.3V)
