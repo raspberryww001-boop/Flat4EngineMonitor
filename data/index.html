@@ -1524,9 +1524,17 @@ connectWS();
     camPH.style.display  = 'flex';
     camBadge.textContent = '\u25CF OFFLINE';
     camBadge.className   = 'cam-badge';
-    camStartBtn.style.display = '';
     camStopBtn.style.display  = 'none';
     sendLed(false);
+    // Cooldown: keep START disabled for 700ms so the server can
+    // finish closing the previous TCP connection before we reconnect.
+    camStartBtn.style.display = '';
+    camStartBtn.disabled = true;
+    camStartBtn.style.opacity = '0.4';
+    setTimeout(() => {
+      camStartBtn.disabled = false;
+      camStartBtn.style.opacity = '';
+    }, 700);
   }
 
   camImg.onerror = function() {

@@ -69,8 +69,9 @@ static void handleStream(WiFiClient& client) {
                 "Content-Length: %u\r\n\r\n",
                 fb->len
             );
-            client.write(fb->buf, fb->len);
+            size_t written = client.write(fb->buf, fb->len);
             client.print("\r\n");
+            if (written == 0) { esp_camera_fb_return(fb); break; }
         }
         esp_camera_fb_return(fb);
         delay(50);  // ~20 fps cap
