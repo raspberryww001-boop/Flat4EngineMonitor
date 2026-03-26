@@ -5,9 +5,9 @@ String     Config::_pass;
 Preferences Config::_prefs;
 
 void Config::load() {
-    _prefs.begin(NVS_NAMESPACE, false); // false = create namespace if not exists
-    _ssid = _prefs.getString(NVS_KEY_SSID, DEFAULT_AP_SSID);
-    _pass = _prefs.getString(NVS_KEY_PASS, DEFAULT_AP_PASS);
+    _prefs.begin(NVS_NAMESPACE, false);
+    _ssid = _prefs.isKey(NVS_KEY_SSID) ? _prefs.getString(NVS_KEY_SSID) : DEFAULT_AP_SSID;
+    _pass = _prefs.isKey(NVS_KEY_PASS) ? _prefs.getString(NVS_KEY_PASS) : DEFAULT_AP_PASS;
     _prefs.end();
 }
 

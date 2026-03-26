@@ -16,22 +16,31 @@ void setup() {
     Config::load();
     Serial.printf("[Config] SSID: %s\n", Config::getSSID().c_str());
 
-    // Initialize ignition/sensors first so attachInterrupt() installs
-    // the GPIO ISR service before the camera driver does — prevents the
-    // "isr service already installed" error log from esp32-camera.
+    // 1. WiFi first — lwIP allocates its mailboxes (mbox) from DRAM here.
+    //    Camera must come AFTER so it doesn't exhaust DRAM before lwIP starts.
+    WiFi.mode(WIFI_AP);
+    if (WiFi.softAP(Config::getSSID().c_str(), Config::getPass().c_str())) {
+        Serial.printf("[WiFi] AP started: %s  IP: %s\n",
+                      Config::getSSID().c_str(),
+                      WiFi.softAPIP().toString().c_str());
+    } else {
+        Serial.println("[WiFi] AP start FAILED, using defaults");
+        WiFi.softAP(DEFAULT_AP_SSID, DEFAULT_AP_PASS);
+    }
+
+    // 2. Sensors & ignition — attachInterrupt() installs GPIO ISR service
+    //    before camera driver, preventing the "already installed" log.
     Sensors::begin();
     Ignition::begin();
     Serial.println("[Sensors] ADC initialized");
     Serial.println("[Ignition] Interrupts attached");
 
-    // Initialize camera (uses LEDC timers; after ISR service is up)
+    // 3. Camera last — frame buffers go to PSRAM, no DRAM competition.
     if (!Camera_begin()) {
         Serial.println("[Camera] WARNING: Camera not available");
     }
 
-    // Start WiFi Access Point
-
-    // Start web server (port 80) and camera stream server (port 81)
+    // 4. Web servers
     WebUI::begin();
     Camera_startStreamServer();
     Serial.println("[System] Ready. Connect to AP and open http://192.168.4.1");
