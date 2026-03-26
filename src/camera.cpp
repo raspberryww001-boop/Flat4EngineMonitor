@@ -124,8 +124,8 @@ bool Camera_begin() {
     cfg.pin_pclk     = CAM_PIN_PCLK;
     cfg.pin_vsync    = CAM_PIN_VSYNC;
     cfg.pin_href     = CAM_PIN_HREF;
-    cfg.pin_sscb_sda = CAM_PIN_SIOD;
-    cfg.pin_sscb_scl = CAM_PIN_SIOC;
+    cfg.pin_sccb_sda = CAM_PIN_SIOD;
+    cfg.pin_sccb_scl = CAM_PIN_SIOC;
     cfg.pin_pwdn     = CAM_PIN_PWDN;
     cfg.pin_reset    = CAM_PIN_RESET;
     cfg.xclk_freq_hz = 20000000;
