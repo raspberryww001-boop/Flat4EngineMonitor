@@ -37,8 +37,15 @@ float Sensors::adcToOilTemp(int raw) {
 }
 
 SensorData Sensors::read() {
+    static float cachedPressure = 0.0f;
+    static float cachedTemp     = -99.0f;
+    int rawP = readADCAvg(PIN_OIL_PRESS);
+    int rawT = readADCAvg(PIN_OIL_TEMP);
+    // ADC2 returns 0 when blocked by WiFi — keep last valid reading
+    if (rawP > 0) cachedPressure = adcToOilPressure(rawP);
+    if (rawT > 0) cachedTemp     = adcToOilTemp(rawT);
     SensorData d;
-    d.oilPressureBar = adcToOilPressure(readADCAvg(PIN_OIL_PRESS));
-    d.oilTempC       = adcToOilTemp(readADCAvg(PIN_OIL_TEMP));
+    d.oilPressureBar = cachedPressure;
+    d.oilTempC       = cachedTemp;
     return d;
 }
