@@ -4,9 +4,10 @@
 
 // === GPIO Pin Definitions ===
 // Reassigned for ESP32-CAM (AI-Thinker) compatibility.
-// Camera module occupies: GPIO 0,5,18,19,21,22,23,25,26,27,32,34,35,36,39
+// Camera module occupies: GPIO 4,5,18,19,21,22,23,25,26,27,34,35,36,39
+//   (Freenove: PWDN=-1, XCLK=21 frees GPIO 0; D0=4 occupies GPIO 4)
 // PSRAM occupies: GPIO 16,17
-// Available for application: GPIO 2,4,12,13,14,15
+// Available for application: GPIO 0,2,12,13,14,15
 
 // Ignition timing inputs (TTL-level signals from conversion circuit)
 // GPIO 12–15 are shared with SD card slot; SD card must NOT be inserted.
@@ -26,7 +27,9 @@
 // WiFi is active. Oil pressure / temperature are slow-changing values so
 // brief dropout or jitter is tolerable for this application.
 #define PIN_OIL_PRESS   2   // Oil pressure sensor (ADC2_CH2)
-#define PIN_OIL_TEMP    4   // Oil temperature sensor (ADC2_CH0)
+#define PIN_OIL_TEMP    0   // Oil temperature sensor (ADC2_CH0)
+                            // GPIO 0 freed because Freenove uses GPIO 21 for XCLK (not GPIO 0)
+                            // Note: GPIO 0 has internal pull-up; sensor must not pull LOW at boot
 
 // === ADC Calibration ===
 // Oil pressure: 0–10 bar -> 0.5–4.5V (100–900 in 12-bit ADC range at 3.3V)
