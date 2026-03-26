@@ -8,6 +8,7 @@
 class WebUI {
 public:
     static void begin();
+    static void broadcastData();  // called from webui_loop() in main
 
 private:
     static AsyncWebServer _server;
@@ -15,7 +16,6 @@ private:
 
     static void onWsEvent(AsyncWebSocket* server, AsyncWebSocketClient* client,
                           AwsEventType type, void* arg, uint8_t* data, size_t len);
-    static void broadcastData();
     static String buildJsonData();
 
     static unsigned long _lastBroadcast;
