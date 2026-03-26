@@ -27,7 +27,7 @@
 // WiFi is active. Oil pressure / temperature are slow-changing values so
 // brief dropout or jitter is tolerable for this application.
 #define PIN_OIL_PRESS   2   // Oil pressure sensor (ADC2_CH2)
-#define PIN_OIL_TEMP    0   // Oil temperature sensor (ADC2_CH0)
+#define PIN_OIL_TEMP    0   // Oil temperature sensor (ADC2_CH1)
                             // GPIO 0 freed because Freenove uses GPIO 21 for XCLK (not GPIO 0)
                             // Note: GPIO 0 has internal pull-up; sensor must not pull LOW at boot
 
