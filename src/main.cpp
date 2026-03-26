@@ -16,28 +16,20 @@ void setup() {
     Config::load();
     Serial.printf("[Config] SSID: %s\n", Config::getSSID().c_str());
 
-    // Initialize camera before WiFi (camera uses LEDC timers)
+    // Initialize ignition/sensors first so attachInterrupt() installs
+    // the GPIO ISR service before the camera driver does — prevents the
+    // "isr service already installed" error log from esp32-camera.
+    Sensors::begin();
+    Ignition::begin();
+    Serial.println("[Sensors] ADC initialized");
+    Serial.println("[Ignition] Interrupts attached");
+
+    // Initialize camera (uses LEDC timers; after ISR service is up)
     if (!Camera_begin()) {
         Serial.println("[Camera] WARNING: Camera not available");
     }
 
     // Start WiFi Access Point
-    WiFi.mode(WIFI_AP);
-    bool ok = WiFi.softAP(Config::getSSID().c_str(), Config::getPass().c_str());
-    if (ok) {
-        Serial.printf("[WiFi] AP started: %s  IP: %s\n",
-                      Config::getSSID().c_str(),
-                      WiFi.softAPIP().toString().c_str());
-    } else {
-        Serial.println("[WiFi] AP start FAILED, using defaults");
-        WiFi.softAP(DEFAULT_AP_SSID, DEFAULT_AP_PASS);
-    }
-
-    // Initialize hardware
-    Sensors::begin();
-    Ignition::begin();
-    Serial.println("[Sensors] ADC initialized");
-    Serial.println("[Ignition] Interrupts attached");
 
     // Start web server (port 80) and camera stream server (port 81)
     WebUI::begin();
