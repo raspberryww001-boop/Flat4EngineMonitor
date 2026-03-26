@@ -1,15 +1,14 @@
 #include "camera.h"
 #include "config.h"
 #include <esp_camera.h>
-#include <WebServer.h>
+#include <WiFi.h>
 
 // ---- AI-Thinker ESP32-CAM pin map ----
-// (Freenove ESP32-CAM uses this same layout)
 #define CAM_PIN_PWDN    32
-#define CAM_PIN_RESET   -1   // not connected
+#define CAM_PIN_RESET   -1
 #define CAM_PIN_XCLK     0
-#define CAM_PIN_SIOD    26   // SDA
-#define CAM_PIN_SIOC    27   // SCL
+#define CAM_PIN_SIOD    26
+#define CAM_PIN_SIOC    27
 #define CAM_PIN_D7      35
 #define CAM_PIN_D6      34
 #define CAM_PIN_D5      39
@@ -22,18 +21,34 @@
 #define CAM_PIN_HREF    23
 #define CAM_PIN_PCLK    22
 
-static WebServer _streamSrv(81);
+static WiFiServer _streamSrv(81);
 
 static inline void ledOn()  { digitalWrite(PIN_CAM_LED, HIGH); }
 static inline void ledOff() { digitalWrite(PIN_CAM_LED, LOW);  }
 
-// ---- MJPEG multipart stream ----
-// LED turns on when a viewer connects, off when they disconnect.
-static void handleStream() {
+// Read HTTP request line, drain remaining headers
+static String readRequestLine(WiFiClient& client) {
+    String first = "";
+    unsigned long deadline = millis() + 2000;
+    while (client.connected() && millis() < deadline) {
+        if (!client.available()) { delay(1); continue; }
+        String line = client.readStringUntil('\n');
+        if (first.isEmpty() && line.length() > 4) first = line;
+        if (line == "\r" || line.length() <= 1) break;
+    }
+    return first;
+}
+
+// CORS + keep-alive headers helper
+static void sendCORSHeader(WiFiClient& client) {
+    client.print("Access-Control-Allow-Origin: *\r\n");
+}
+
+// ---- MJPEG stream ----
+static void handleStream(WiFiClient& client) {
     ledOn();
     Serial.println("[Camera] Stream client connected — LED on");
 
-    WiFiClient client = _streamSrv.client();
     client.print(
         "HTTP/1.1 200 OK\r\n"
         "Content-Type: multipart/x-mixed-replace;boundary=frame\r\n"
@@ -64,46 +79,59 @@ static void handleStream() {
 }
 
 // ---- Single JPEG snapshot ----
-static void handleSnapshot() {
+static void handleSnapshot(WiFiClient& client) {
     camera_fb_t* fb = esp_camera_fb_get();
     if (!fb) {
-        _streamSrv.send(503, "text/plain", "Capture failed");
+        client.print("HTTP/1.1 503 Service Unavailable\r\nContent-Length: 0\r\n\r\n");
         return;
     }
-    _streamSrv.sendHeader("Content-Disposition", "inline; filename=snapshot.jpg");
-    _streamSrv.sendHeader("Access-Control-Allow-Origin", "*");
-    _streamSrv.send_P(200, "image/jpeg", (const char*)fb->buf, fb->len);
+    client.printf(
+        "HTTP/1.1 200 OK\r\n"
+        "Content-Type: image/jpeg\r\n"
+        "Content-Length: %u\r\n"
+        "Content-Disposition: inline; filename=snapshot.jpg\r\n"
+        "Access-Control-Allow-Origin: *\r\n\r\n",
+        fb->len
+    );
+    client.write(fb->buf, fb->len);
     esp_camera_fb_return(fb);
 }
 
-// ---- Manual LED control: GET /led?state=on  or  /led?state=off ----
-static void handleLed() {
-    _streamSrv.sendHeader("Access-Control-Allow-Origin", "*");
-    if (_streamSrv.hasArg("state")) {
-        String s = _streamSrv.arg("state");
-        if (s == "on")  { ledOn();  _streamSrv.send(200, "text/plain", "on");  return; }
-        if (s == "off") { ledOff(); _streamSrv.send(200, "text/plain", "off"); return; }
-    }
-    // No arg: return current state
-    _streamSrv.send(200, "text/plain",
-        digitalRead(PIN_CAM_LED) ? "on" : "off");
+// ---- LED control: /led?state=on|off ----
+static void handleLed(WiFiClient& client, const String& req) {
+    if (req.indexOf("state=on")  >= 0) ledOn();
+    if (req.indexOf("state=off") >= 0) ledOff();
+    const char* state = digitalRead(PIN_CAM_LED) ? "on" : "off";
+    client.printf(
+        "HTTP/1.1 200 OK\r\n"
+        "Content-Type: text/plain\r\n"
+        "Content-Length: %u\r\n"
+        "Access-Control-Allow-Origin: *\r\n\r\n"
+        "%s",
+        strlen(state), state
+    );
 }
 
-// ---- FreeRTOS task: runs stream server on core 0 ----
+// ---- FreeRTOS task ----
 static void streamTask(void* arg) {
-    _streamSrv.on("/stream",   handleStream);
-    _streamSrv.on("/snapshot", handleSnapshot);
-    _streamSrv.on("/led",      handleLed);
     _streamSrv.begin();
     Serial.println("[Camera] Stream server started on port 81");
+
     for (;;) {
-        _streamSrv.handleClient();
+        WiFiClient client = _streamSrv.available();
+        if (client) {
+            String req = readRequestLine(client);
+            if      (req.indexOf("/stream")   >= 0) handleStream(client);
+            else if (req.indexOf("/snapshot") >= 0) handleSnapshot(client);
+            else if (req.indexOf("/led")      >= 0) handleLed(client, req);
+            else client.print("HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n");
+            client.stop();
+        }
         delay(1);
     }
 }
 
 bool Camera_begin() {
-    // LED pin setup
     pinMode(PIN_CAM_LED, OUTPUT);
     ledOff();
 
@@ -132,11 +160,11 @@ bool Camera_begin() {
     cfg.pixel_format = PIXFORMAT_JPEG;
 
     if (psramFound()) {
-        cfg.frame_size   = FRAMESIZE_VGA;   // 640×480
-        cfg.jpeg_quality = 12;              // 0–63 (lower = better quality)
-        cfg.fb_count     = 2;              // double-buffer for smooth streaming
+        cfg.frame_size   = FRAMESIZE_VGA;
+        cfg.jpeg_quality = 12;
+        cfg.fb_count     = 2;
     } else {
-        cfg.frame_size   = FRAMESIZE_QVGA;  // 320×240
+        cfg.frame_size   = FRAMESIZE_QVGA;
         cfg.jpeg_quality = 15;
         cfg.fb_count     = 1;
     }
@@ -146,13 +174,10 @@ bool Camera_begin() {
         Serial.printf("[Camera] Init failed: 0x%x\n", err);
         return false;
     }
-
     Serial.println("[Camera] OV2640 initialized OK");
     return true;
 }
 
 void Camera_startStreamServer() {
-    // Stack 4 KB, priority 1, pinned to core 0
-    // (main loop runs on core 1, so no CPU contention)
     xTaskCreatePinnedToCore(streamTask, "camStream", 4096, nullptr, 1, nullptr, 0);
 }
