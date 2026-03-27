@@ -1055,7 +1055,6 @@ body {
       <button class="btn btn-primary"   id="camStartBtn">&#9654; START</button>
       <button class="btn btn-secondary" id="camStopBtn"  style="display:none">&#9646;&#9646; STOP</button>
       <button class="btn btn-secondary" id="camSnapBtn">&#9685; SNAPSHOT</button>
-      <button class="btn btn-secondary" id="camLedBtn">&#9728; LED OFF</button>
     </div>
   </div>
 
@@ -1515,9 +1514,8 @@ connectWS();
   const camStartBtn = document.getElementById('camStartBtn');
   const camStopBtn  = document.getElementById('camStopBtn');
   const camSnapBtn  = document.getElementById('camSnapBtn');
-  const camLedBtn   = document.getElementById('camLedBtn');
 
-  let ledState = false;  // tracks LED on/off
+  let stopping = false; // true while we are intentionally stopping the stream
 
   function camBaseUrl() {
     return `http://${window.location.hostname}:81`;
@@ -1528,24 +1526,10 @@ connectWS();
     return h && h !== 'localhost' && h !== '127.0.0.1';
   }
 
-  // ---- LED helpers ----
-  function setLedBtn(on) {
-    ledState = on;
-    camLedBtn.textContent = on ? '\u9728 LED ON' : '\u9728 LED OFF';
-    camLedBtn.className   = on ? 'btn btn-primary' : 'btn btn-secondary';
-  }
-
   function sendLed(on) {
     if (!isLive()) return;
-    fetch(camBaseUrl() + '/led?state=' + (on ? 'on' : 'off'))
-      .then(r => r.text())
-      .then(s => setLedBtn(s === 'on'))
-      .catch(() => {});
+    fetch(camBaseUrl() + '/led?state=' + (on ? 'on' : 'off')).catch(() => {});
   }
-
-  camLedBtn.addEventListener('click', function() {
-    sendLed(!ledState);
-  });
 
   // ---- Stream controls ----
   function startStream() {
@@ -1554,6 +1538,7 @@ connectWS();
       camBadge.className = 'cam-badge';
       return;
     }
+    stopping = false;
     camImg.src = camBaseUrl() + '/stream';
     camImg.style.display = 'block';
     camPH.style.display  = 'none';
@@ -1561,18 +1546,18 @@ connectWS();
     camBadge.className   = 'cam-badge live';
     camStartBtn.style.display = 'none';
     camStopBtn.style.display  = '';
-    // LED turns on automatically server-side when stream connects,
-    // but sync the button state after a short delay.
+    // LED auto-on with stream
     setTimeout(() => { if (isLive()) sendLed(true); }, 500);
   }
 
   function stopStream() {
+    stopping = true;
     camImg.src = '';
     camImg.style.display = 'none';
     camPH.style.display  = 'flex';
     camBadge.textContent = '\u25CF OFFLINE';
     camBadge.className   = 'cam-badge';
-    camStopBtn.style.display  = 'none';
+    camStopBtn.style.display = 'none';
     sendLed(false);
     // Cooldown: keep START disabled for 700ms so the server can
     // finish closing the previous TCP connection before we reconnect.
@@ -1582,10 +1567,13 @@ connectWS();
     setTimeout(() => {
       camStartBtn.disabled = false;
       camStartBtn.style.opacity = '';
+      stopping = false;
     }, 700);
   }
 
+  // onerror fires on intentional stop too (src='') — ignore those
   camImg.onerror = function() {
+    if (stopping) return;
     stopStream();
     camBadge.textContent = '\u25CF ERROR';
     camBadge.className   = 'cam-badge error';
