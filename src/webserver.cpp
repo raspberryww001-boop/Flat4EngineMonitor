@@ -77,15 +77,17 @@ void WebUI::onWsEvent(AsyncWebSocket* server, AsyncWebSocketClient* client,
 String WebUI::buildJsonData() {
     IgnitionData ign = Ignition::getData();
 
-    StaticJsonDocument<256> doc;
+    StaticJsonDocument<320> doc;
     doc["rpm"]     = (int)ign.rpm;
     doc["running"] = ign.engineRunning;
 
-    JsonArray timing = doc.createNestedArray("timing");
-    JsonArray firing = doc.createNestedArray("firing");
+    JsonArray timing  = doc.createNestedArray("timing");
+    JsonArray firing  = doc.createNestedArray("firing");
+    JsonArray misfire = doc.createNestedArray("misfire");
     for (int i = 0; i < 4; i++) {
         timing.add(round(ign.timingDeg[i] * 10.0f) / 10.0f);
         firing.add(ign.firing[i]);
+        misfire.add(ign.misfire[i]);
     }
 
     String out;

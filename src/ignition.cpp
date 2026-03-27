@@ -92,6 +92,11 @@ IgnitionData Ignition::getData() {
     // cyl1 = 0° by definition
     d.timingDeg[0] = 0.0f;
     d.firing[0]    = fired[0];
+    // Misfire: cylinder silent for >1.5x the expected firing period
+    for (int i = 0; i < 4; i++) {
+        d.misfire[i] = running && cyl1Period > 0 && lastTime[i] > 0 &&
+                       (now - lastTime[i]) > (cyl1Period * 3 / 2);
+    }
 
     for (int i = 1; i < 4; i++) {
         d.firing[i] = fired[i];
