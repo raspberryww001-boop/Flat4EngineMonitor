@@ -6,6 +6,7 @@ struct IgnitionData {
     float  rpm;                  // Engine RPM (from cyl1 period)
     float  timingDeg[4];         // Timing offset in degrees rel. to cyl1 (cyl1=0)
     bool   firing[4];            // Pulse detected recently
+    bool   misfire[4];           // Cylinder silent for >1.5x expected period
     bool   engineRunning;
 };
 

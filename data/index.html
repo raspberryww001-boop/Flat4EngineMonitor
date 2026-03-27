@@ -208,6 +208,65 @@ body {
   margin-top: 8px;
 }
 
+/* ===== RPM Zone label ===== */
+.rpm-zone {
+  font-size: 0.6rem;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--vw-chrome);
+  margin-top: 4px;
+  transition: color 0.3s;
+}
+.rpm-zone.warn  { color: #E8C20A; }
+.rpm-zone.fault { color: var(--vw-red); }
+
+/* ===== Overall timing health badge ===== */
+.timing-health {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.6rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 4px 12px;
+  border-radius: 20px;
+  border: 1px solid var(--vw-green);
+  color: var(--vw-green);
+  transition: all 0.3s;
+}
+.timing-health.warn  { border-color: #E8C20A; color: #E8C20A; }
+.timing-health.fault { border-color: var(--vw-red);  color: var(--vw-red); animation: blink-fault 0.6s infinite; }
+.timing-health.dim   { border-color: var(--gauge-ring); color: var(--text-dim); }
+
+@keyframes blink-fault {
+  0%,100% { opacity:1; } 50% { opacity:0.4; }
+}
+
+/* ===== Timing deviation from ideal ===== */
+.timing-dev {
+  font-size: 0.75rem;
+  font-weight: bold;
+  color: var(--vw-green);
+  letter-spacing: 1px;
+  transition: color 0.3s;
+}
+.timing-dev.warn  { color: #E8C20A; }
+.timing-dev.fault { color: var(--vw-red); }
+
+/* ===== Misfire warning badge ===== */
+.misfire-badge {
+  font-size: 0.55rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--vw-red);
+  border: 1px solid var(--vw-red);
+  border-radius: 4px;
+  padding: 2px 6px;
+  display: none;
+  animation: blink-fault 0.5s infinite;
+}
+.misfire-badge.active { display: inline-block; }
+
 /* ===== RPM Card ===== */
 .card-rpm {
   grid-column: 1 / 2;
@@ -876,13 +935,14 @@ body {
       <div class="gauge-value" id="rpmValue">0</div>
     </div>
     <div class="gauge-unit">RPM</div>
+    <div class="rpm-zone" id="rpmZone">---</div>
   </div>
 
   <!-- Ignition Timing Card -->
   <div class="gauge-card card-timing">
     <div class="timing-header">
       <h2>Ignition Timing</h2>
-      <span style="font-size:0.6rem;color:var(--text-dim);letter-spacing:1px;">CYL.1 = REFERENCE (0°)</span>
+      <div class="timing-health dim" id="timingHealth">● ---</div>
     </div>
 
     <div class="timing-grid">
@@ -895,6 +955,7 @@ body {
         </div>
         <div class="timing-deg" id="tim1">0.0°</div>
         <div class="timing-deg-unit">REFERENCE</div>
+        <div class="misfire-badge" id="mf1">MISFIRE</div>
         <div class="timing-bar-wrap">
           <div class="timing-bar" id="bar1" style="width:0%"></div>
         </div>
@@ -906,10 +967,12 @@ body {
           2
           <div class="spark-flash" id="spark2"></div>
         </div>
-        <div class="timing-deg" id="tim2">180.0°</div>
+        <div class="timing-deg" id="tim2">540.0°</div>
         <div class="timing-deg-unit">FROM CYL.1</div>
+        <div class="timing-dev" id="dev2">+0.0°</div>
+        <div class="misfire-badge" id="mf2">MISFIRE</div>
         <div class="timing-bar-wrap">
-          <div class="timing-bar" id="bar2" style="width:50%"></div>
+          <div class="timing-bar" id="bar2" style="width:75%"></div>
         </div>
       </div>
       <!-- Cylinder 3 -->
@@ -921,8 +984,10 @@ body {
         </div>
         <div class="timing-deg" id="tim3">360.0°</div>
         <div class="timing-deg-unit">FROM CYL.1</div>
+        <div class="timing-dev" id="dev3">+0.0°</div>
+        <div class="misfire-badge" id="mf3">MISFIRE</div>
         <div class="timing-bar-wrap">
-          <div class="timing-bar" id="bar3" style="width:100%"></div>
+          <div class="timing-bar" id="bar3" style="width:50%"></div>
         </div>
       </div>
       <!-- Cylinder 4 -->
@@ -932,10 +997,12 @@ body {
           4
           <div class="spark-flash" id="spark4"></div>
         </div>
-        <div class="timing-deg" id="tim4">540.0°</div>
+        <div class="timing-deg" id="tim4">180.0°</div>
         <div class="timing-deg-unit">FROM CYL.1</div>
+        <div class="timing-dev" id="dev4">+0.0°</div>
+        <div class="misfire-badge" id="mf4">MISFIRE</div>
         <div class="timing-bar-wrap">
-          <div class="timing-bar" id="bar4" style="width:100%"></div>
+          <div class="timing-bar" id="bar4" style="width:25%"></div>
         </div>
       </div>
     </div>
@@ -988,7 +1055,6 @@ body {
       <button class="btn btn-primary"   id="camStartBtn">&#9654; START</button>
       <button class="btn btn-secondary" id="camStopBtn"  style="display:none">&#9646;&#9646; STOP</button>
       <button class="btn btn-secondary" id="camSnapBtn">&#9685; SNAPSHOT</button>
-      <button class="btn btn-secondary" id="camLedBtn">&#9728; LED OFF</button>
     </div>
   </div>
 
@@ -1247,34 +1313,88 @@ function updateUI(d) {
   document.getElementById('rpmValue').textContent = rpm.toLocaleString();
   setGauge('rpmArc', rpm / 8000);
 
+  // RPM zone
+  const RPM_ZONES = [
+    { max: 400,      label: '---',      cls: '' },
+    { max: 1100,     label: 'IDLE',     cls: '' },
+    { max: 4500,     label: 'RUNNING',  cls: '' },
+    { max: 6000,     label: 'HIGH REV', cls: 'warn' },
+    { max: Infinity, label: 'DANGER',   cls: 'fault' },
+  ];
+  const zone = RPM_ZONES.find(z => rpm < z.max) || RPM_ZONES[RPM_ZONES.length - 1];
+  const rpmZoneEl = document.getElementById('rpmZone');
+  rpmZoneEl.textContent = zone.label;
+  rpmZoneEl.className = 'rpm-zone' + (zone.cls ? ' ' + zone.cls : '');
+
   // Ignition timing
-  const timing = d.timing || [0, 180, 360, 540];
+  // VW Flat-4 firing order 1-4-3-2: ideal offsets from cyl1
+  const IDEAL_DEG = [0, 540, 360, 180];
+  const timing  = d.timing  || [0, 540, 360, 180];
   const firing  = d.firing  || [false, false, false, false];
+  const misfire = d.misfire || [false, false, false, false];
+
+  let maxDev    = 0;
+  let hasMisfire = false;
 
   for (let i = 0; i < 4; i++) {
-    const badge = document.getElementById(`cyl${i+1}Badge`);
-    const deg   = timing[i] || 0;
-    const degNorm = ((deg % 720) + 720) % 720; // 0–720
-    const pct   = degNorm / 720;
+    const badge   = document.getElementById(`cyl${i+1}Badge`);
+    const deg     = timing[i] || 0;
+    const degNorm = ((deg % 720) + 720) % 720;
+    const pct     = degNorm / 720;
 
-    // Update badge fired state
+    // Spark flash
     if (firing[i]) {
       badge.classList.add('fired');
       setTimeout(() => badge.classList.remove('fired'), 150);
     }
 
-    // Update degree display
-    const sign = deg >= 0 ? '+' : '';
+    // Degree display
     document.getElementById(`tim${i+1}`).textContent =
-      (i === 0) ? '0.0°' : `${deg >= 0 ? '+' : ''}${deg.toFixed(1)}°`;
+      (i === 0) ? '0.0°' : `${deg.toFixed(1)}°`;
 
-    // Update bar
+    // Deviation from ideal (cyl 2-4 only)
+    if (i > 0) {
+      let dev = deg - IDEAL_DEG[i];
+      while (dev >  360) dev -= 720;
+      while (dev < -360) dev += 720;
+      const absdev = Math.abs(dev);
+      if (absdev > maxDev) maxDev = absdev;
+      const devEl = document.getElementById(`dev${i+1}`);
+      devEl.textContent = (dev >= 0 ? '+' : '') + dev.toFixed(1) + '°';
+      devEl.className = 'timing-dev' + (absdev > 15 ? ' fault' : absdev > 5 ? ' warn' : '');
+    }
+
+    // Misfire badge
+    const mfEl = document.getElementById(`mf${i+1}`);
+    if (misfire[i]) {
+      mfEl.classList.add('active');
+      hasMisfire = true;
+    } else {
+      mfEl.classList.remove('active');
+    }
+
+    // Progress bar
     document.getElementById(`bar${i+1}`).style.width =
-      (i === 0) ? '0%' : `${Math.min(Math.abs(pct) * 100, 100).toFixed(1)}%`;
+      (i === 0) ? '0%' : `${Math.min(pct * 100, 100).toFixed(1)}%`;
 
-    // Update crank marker
-    const marker = document.getElementById(`mark${i+1}`);
-    marker.style.left = `${(pct * 100).toFixed(1)}%`;
+    // Crank marker
+    document.getElementById(`mark${i+1}`).style.left = `${(pct * 100).toFixed(1)}%`;
+  }
+
+  // Overall timing health
+  const healthEl = document.getElementById('timingHealth');
+  if (!running) {
+    healthEl.textContent = '● STOPPED';
+    healthEl.className   = 'timing-health dim';
+  } else if (hasMisfire || maxDev > 15) {
+    healthEl.textContent = '● FAULT';
+    healthEl.className   = 'timing-health fault';
+  } else if (maxDev > 5) {
+    healthEl.textContent = '● WARN';
+    healthEl.className   = 'timing-health warn';
+  } else {
+    healthEl.textContent = '● OK';
+    healthEl.className   = 'timing-health';
   }
 }
 
@@ -1327,7 +1447,8 @@ function startDemoMode() {
       running: true,
       rpm:     DEMO.rpm,
       timing:  DEMO.timingBase,
-      firing:  [false, false, false, false]
+      firing:  [false, false, false, false],
+      misfire: [false, false, false, false]
     });
     requestAnimationFrame(animFrame);
   }
@@ -1393,9 +1514,8 @@ connectWS();
   const camStartBtn = document.getElementById('camStartBtn');
   const camStopBtn  = document.getElementById('camStopBtn');
   const camSnapBtn  = document.getElementById('camSnapBtn');
-  const camLedBtn   = document.getElementById('camLedBtn');
 
-  let ledState = false;  // tracks LED on/off
+  let stopping = false; // true while we are intentionally stopping the stream
 
   function camBaseUrl() {
     return `http://${window.location.hostname}:81`;
@@ -1406,24 +1526,10 @@ connectWS();
     return h && h !== 'localhost' && h !== '127.0.0.1';
   }
 
-  // ---- LED helpers ----
-  function setLedBtn(on) {
-    ledState = on;
-    camLedBtn.textContent = on ? '\u9728 LED ON' : '\u9728 LED OFF';
-    camLedBtn.className   = on ? 'btn btn-primary' : 'btn btn-secondary';
-  }
-
   function sendLed(on) {
     if (!isLive()) return;
-    fetch(camBaseUrl() + '/led?state=' + (on ? 'on' : 'off'))
-      .then(r => r.text())
-      .then(s => setLedBtn(s === 'on'))
-      .catch(() => {});
+    fetch(camBaseUrl() + '/led?state=' + (on ? 'on' : 'off')).catch(() => {});
   }
-
-  camLedBtn.addEventListener('click', function() {
-    sendLed(!ledState);
-  });
 
   // ---- Stream controls ----
   function startStream() {
@@ -1432,6 +1538,7 @@ connectWS();
       camBadge.className = 'cam-badge';
       return;
     }
+    stopping = false;
     camImg.src = camBaseUrl() + '/stream';
     camImg.style.display = 'block';
     camPH.style.display  = 'none';
@@ -1439,18 +1546,18 @@ connectWS();
     camBadge.className   = 'cam-badge live';
     camStartBtn.style.display = 'none';
     camStopBtn.style.display  = '';
-    // LED turns on automatically server-side when stream connects,
-    // but sync the button state after a short delay.
+    // LED auto-on with stream
     setTimeout(() => { if (isLive()) sendLed(true); }, 500);
   }
 
   function stopStream() {
+    stopping = true;
     camImg.src = '';
     camImg.style.display = 'none';
     camPH.style.display  = 'flex';
     camBadge.textContent = '\u25CF OFFLINE';
     camBadge.className   = 'cam-badge';
-    camStopBtn.style.display  = 'none';
+    camStopBtn.style.display = 'none';
     sendLed(false);
     // Cooldown: keep START disabled for 700ms so the server can
     // finish closing the previous TCP connection before we reconnect.
@@ -1460,10 +1567,13 @@ connectWS();
     setTimeout(() => {
       camStartBtn.disabled = false;
       camStartBtn.style.opacity = '';
+      stopping = false;
     }, 700);
   }
 
+  // onerror fires on intentional stop too (src='') — ignore those
   camImg.onerror = function() {
+    if (stopping) return;
     stopStream();
     camBadge.textContent = '\u25CF ERROR';
     camBadge.className   = 'cam-badge error';

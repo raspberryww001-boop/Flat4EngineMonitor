@@ -2,7 +2,6 @@
 #include <WiFi.h>
 #include "config.h"
 #include "ignition.h"
-#include "sensors.h"
 #include "webserver.h"
 #include "camera.h"
 
@@ -28,11 +27,9 @@ void setup() {
         WiFi.softAP(DEFAULT_AP_SSID, DEFAULT_AP_PASS);
     }
 
-    // 2. Sensors & ignition — attachInterrupt() installs GPIO ISR service
+    // 2. Ignition — attachInterrupt() installs GPIO ISR service
     //    before camera driver, preventing the "already installed" log.
-    Sensors::begin();
     Ignition::begin();
-    Serial.println("[Sensors] ADC initialized");
     Serial.println("[Ignition] Interrupts attached");
 
     // 3. Camera last — frame buffers go to PSRAM, no DRAM competition.
