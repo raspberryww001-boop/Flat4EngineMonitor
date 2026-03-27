@@ -76,13 +76,10 @@ void WebUI::onWsEvent(AsyncWebSocket* server, AsyncWebSocketClient* client,
 
 String WebUI::buildJsonData() {
     IgnitionData ign = Ignition::getData();
-    SensorData   sen = Sensors::read();
 
-    StaticJsonDocument<512> doc;
-    doc["rpm"]         = (int)ign.rpm;
-    doc["running"]     = ign.engineRunning;
-    doc["oilPressBar"] = round(sen.oilPressureBar * 10.0f) / 10.0f;
-    doc["oilTempC"]    = round(sen.oilTempC * 10.0f) / 10.0f;
+    StaticJsonDocument<256> doc;
+    doc["rpm"]     = (int)ign.rpm;
+    doc["running"] = ign.engineRunning;
 
     JsonArray timing = doc.createNestedArray("timing");
     JsonArray firing = doc.createNestedArray("firing");

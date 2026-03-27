@@ -138,7 +138,7 @@ body {
 /* ===== Main Dashboard Grid ===== */
 .dashboard {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: 1fr 2fr;
   grid-template-rows: auto auto;
   gap: 20px;
   padding: 28px 24px 24px;
@@ -208,26 +208,16 @@ body {
   margin-top: 8px;
 }
 
-/* ===== RPM Large Card ===== */
+/* ===== RPM Card ===== */
 .card-rpm {
   grid-column: 1 / 2;
   grid-row: 1;
 }
 
-.card-oilpress {
+/* ===== Ignition Timing Panel ===== */
+.card-timing {
   grid-column: 2 / 3;
   grid-row: 1;
-}
-
-.card-oiltemp {
-  grid-column: 3 / 4;
-  grid-row: 1;
-}
-
-/* ===== Ignition Timing Panel (full width) ===== */
-.card-timing {
-  grid-column: 1 / 4;
-  grid-row: 2;
   flex-direction: column;
   align-items: stretch;
   padding: 24px;
@@ -566,8 +556,8 @@ body {
 
 /* ===== Camera Panel ===== */
 .card-camera {
-  grid-column: 1 / 4;
-  grid-row: 3;
+  grid-column: 1 / 3;
+  grid-row: 2;
   flex-direction: column;
   align-items: stretch;
   padding: 24px;
@@ -751,22 +741,17 @@ body {
 /* Responsive */
 @media(max-width:768px) {
   .dashboard {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
     padding: 16px;
     gap: 14px;
   }
-  .card-rpm    { grid-column: 1 / 2; }
-  .card-oilpress { grid-column: 2 / 3; }
-  .card-oiltemp { grid-column: 1 / 3; }
-  .card-timing { grid-column: 1 / 3; }
-  .card-camera { grid-column: 1 / 3; }
+  .card-rpm    { grid-column: 1; grid-row: 1; }
+  .card-timing { grid-column: 1; grid-row: 2; }
+  .card-camera { grid-column: 1; grid-row: 3; }
   .timing-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
 @media(max-width:480px) {
-  .dashboard { grid-template-columns: 1fr; }
-  .card-oilpress, .card-oiltemp, .card-timing, .card-camera { grid-column: 1; }
-  .card-oiltemp { grid-row: auto; }
   .timing-grid { grid-template-columns: repeat(2, 1fr); }
 }
 </style>
@@ -891,46 +876,6 @@ body {
       <div class="gauge-value" id="rpmValue">0</div>
     </div>
     <div class="gauge-unit">RPM</div>
-  </div>
-
-  <!-- Oil Pressure Card -->
-  <div class="gauge-card card-oilpress">
-    <div class="gauge-label">Oil Pressure</div>
-    <div class="gauge-svg-wrap">
-      <svg viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg">
-        <path id="opBgArc" d="" fill="none" stroke="#1E3A5F" stroke-width="14" stroke-linecap="round"/>
-        <path id="opArc"   d="" fill="none" stroke="url(#opGrad)"  stroke-width="14" stroke-linecap="round"/>
-        <defs>
-          <linearGradient id="opGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stop-color="#27AE60"/>
-            <stop offset="70%" stop-color="#E8600A"/>
-            <stop offset="100%" stop-color="#C0392B"/>
-          </linearGradient>
-        </defs>
-      </svg>
-      <div class="gauge-value" id="opValue">0.0</div>
-    </div>
-    <div class="gauge-unit">BAR</div>
-  </div>
-
-  <!-- Oil Temp Card -->
-  <div class="gauge-card card-oiltemp">
-    <div class="gauge-label">Oil Temperature</div>
-    <div class="gauge-svg-wrap">
-      <svg viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg">
-        <path id="otBgArc" d="" fill="none" stroke="#1E3A5F" stroke-width="14" stroke-linecap="round"/>
-        <path id="otArc"   d="" fill="none" stroke="url(#otGrad)"  stroke-width="14" stroke-linecap="round"/>
-        <defs>
-          <linearGradient id="otGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stop-color="#003DA5"/>
-            <stop offset="50%" stop-color="#27AE60"/>
-            <stop offset="100%" stop-color="#C0392B"/>
-          </linearGradient>
-        </defs>
-      </svg>
-      <div class="gauge-value" id="otValue">--</div>
-    </div>
-    <div class="gauge-unit">°C</div>
   </div>
 
   <!-- Ignition Timing Card -->
@@ -1289,8 +1234,6 @@ function setGauge(arcId, pct) {
 }
 
 initGauge('rpmBgArc', 'rpmArc');
-initGauge('opBgArc',  'opArc');
-initGauge('otBgArc',  'otArc');
 
 // ===== Update UI from data =====
 function updateUI(d) {
@@ -1303,17 +1246,6 @@ function updateUI(d) {
   const rpm = d.rpm || 0;
   document.getElementById('rpmValue').textContent = rpm.toLocaleString();
   setGauge('rpmArc', rpm / 8000);
-
-  // Oil pressure (0–10 bar)
-  const op = d.oilPressBar || 0;
-  document.getElementById('opValue').textContent = op.toFixed(1);
-  setGauge('opArc', op / 10);
-
-  // Oil temp (0–150°C displayed range 40–150)
-  const ot = d.oilTempC;
-  document.getElementById('otValue').textContent =
-    (ot !== undefined && ot > -50) ? ot.toFixed(0) : '--';
-  setGauge('otArc', ((ot || 40) - 40) / 110);
 
   // Ignition timing
   const timing = d.timing || [0, 180, 360, 540];
@@ -1347,13 +1279,9 @@ function updateUI(d) {
 }
 
 // ===== Demo Mode (activates when ESP32 is not reachable) =====
-// Mock values: 1000 RPM / 30 psi (2.07 bar) / 40°C
+// Firing order 1-4-3-2 (VW flat-4 style)
 const DEMO = {
   rpm:        1000,
-  oilPressBar: 2.07,   // 30 psi converted to bar
-  oilTempC:   40,
-  // Ideal 4-cyl timing offsets (relative to cyl1 = 0°)
-  // Firing order 1-4-3-2 (VW flat-4 style)
   timingBase: [0, 540, 360, 180]
 };
 
@@ -1396,12 +1324,10 @@ function startDemoMode() {
     demoPhase = (demoPhase + (dt / periodMs) * 720) % 720;
     // Pass firing:false — spark badges are handled by the timers above
     updateUI({
-      running:     true,
-      rpm:         DEMO.rpm,
-      oilPressBar: DEMO.oilPressBar,
-      oilTempC:    DEMO.oilTempC,
-      timing:      DEMO.timingBase,
-      firing:      [false, false, false, false]
+      running: true,
+      rpm:     DEMO.rpm,
+      timing:  DEMO.timingBase,
+      firing:  [false, false, false, false]
     });
     requestAnimationFrame(animFrame);
   }
