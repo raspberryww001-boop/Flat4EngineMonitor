@@ -49,6 +49,7 @@
 // Without TDC, cyl1 is used as 0° reference
 #define FIRE_INTERVAL_DEG   180.0f   // degrees between cylinders (720° / 4)
 #define RPM_TIMEOUT_MS      2000     // No signal timeout (engine stopped)
+#define IGN_DEBOUNCE_US     2000     // Ignore re-triggers within 2 ms of last pulse
 
 // === WiFi defaults (stored in NVS, overridable via WebUI) ===
 #define DEFAULT_AP_SSID     "Flat4Monitor"
