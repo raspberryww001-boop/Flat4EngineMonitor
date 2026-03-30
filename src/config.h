@@ -16,6 +16,10 @@
 #define PIN_IGN_CYL3   14   // Cylinder 3
 #define PIN_IGN_CYL4   15   // Cylinder 4
 
+// DS18B20 1-Wire temperature sensor
+// GPIO 32 = ADC1_CH4, free on Freenove (PWDN=-1). Connect with 4.7kΩ pull-up to 3.3V.
+#define PIN_TEMP_DS18B20  32
+
 // Camera illumination LED
 // GPIO 33 is free on AI-Thinker ESP32-CAM (not used by camera, PSRAM, or SD).
 // Connect: GPIO 33 → 100Ω resistor → LED anode → LED cathode → GND

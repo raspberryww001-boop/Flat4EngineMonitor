@@ -2,6 +2,7 @@
 #include <Arduino.h>
 #include <ESPAsyncWebServer.h>
 #include "ignition.h"
+#include "temp.h"
 #include "config.h"
 
 class WebUI {
