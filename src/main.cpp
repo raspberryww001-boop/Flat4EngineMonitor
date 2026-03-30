@@ -2,6 +2,7 @@
 #include <WiFi.h>
 #include "config.h"
 #include "ignition.h"
+#include "temp.h"
 #include "webserver.h"
 #include "camera.h"
 
@@ -27,10 +28,10 @@ void setup() {
         WiFi.softAP(DEFAULT_AP_SSID, DEFAULT_AP_PASS);
     }
 
-    // 2. Ignition — attachInterrupt() installs GPIO ISR service
-    //    before camera driver, preventing the "already installed" log.
+    // 2. Ignition + temperature sensor
     Ignition::begin();
     Serial.println("[Ignition] Interrupts attached");
+    TempSensor::begin();
 
     // 3. Camera last — frame buffers go to PSRAM, no DRAM competition.
     if (!Camera_begin()) {
@@ -45,6 +46,7 @@ void setup() {
 }
 
 void loop() {
-    webui_loop(); // Broadcast sensor/ignition data via WebSocket
+    TempSensor::update();  // non-blocking DS18B20 conversion poll
+    webui_loop();          // Broadcast sensor/ignition data via WebSocket
     delay(10);
 }

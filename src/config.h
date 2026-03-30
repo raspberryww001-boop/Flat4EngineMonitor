@@ -16,6 +16,10 @@
 #define PIN_IGN_CYL3   14   // Cylinder 3
 #define PIN_IGN_CYL4   15   // Cylinder 4
 
+// DS18B20 1-Wire temperature sensor
+// GPIO 32 = ADC1_CH4, free on Freenove (PWDN=-1). Connect with 4.7kΩ pull-up to 3.3V.
+#define PIN_TEMP_DS18B20  32
+
 // Camera illumination LED
 // GPIO 33 is free on AI-Thinker ESP32-CAM (not used by camera, PSRAM, or SD).
 // Connect: GPIO 33 → 100Ω resistor → LED anode → LED cathode → GND
@@ -49,6 +53,7 @@
 // Without TDC, cyl1 is used as 0° reference
 #define FIRE_INTERVAL_DEG   180.0f   // degrees between cylinders (720° / 4)
 #define RPM_TIMEOUT_MS      2000     // No signal timeout (engine stopped)
+#define IGN_DEBOUNCE_US     2000     // Ignore re-triggers within 2 ms of last pulse
 
 // === WiFi defaults (stored in NVS, overridable via WebUI) ===
 #define DEFAULT_AP_SSID     "Flat4Monitor"

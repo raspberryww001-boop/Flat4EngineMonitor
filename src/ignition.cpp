@@ -22,6 +22,7 @@ void Ignition::begin() {
 void IRAM_ATTR Ignition::isr_cyl1() {
     uint64_t now = esp_timer_get_time(); // microseconds
     if (_lastTime[0] != 0) {
+        if ((now - _lastTime[0]) < IGN_DEBOUNCE_US) return; // debounce
         _cyl1Period = now - _lastTime[0];
     }
     _lastTime[0] = now;
@@ -31,18 +32,21 @@ void IRAM_ATTR Ignition::isr_cyl1() {
 
 void IRAM_ATTR Ignition::isr_cyl2() {
     uint64_t now = esp_timer_get_time();
+    if (_lastTime[1] != 0 && (now - _lastTime[1]) < IGN_DEBOUNCE_US) return;
     _lastTime[1] = now;
     _fired[1]    = true;
 }
 
 void IRAM_ATTR Ignition::isr_cyl3() {
     uint64_t now = esp_timer_get_time();
+    if (_lastTime[2] != 0 && (now - _lastTime[2]) < IGN_DEBOUNCE_US) return;
     _lastTime[2] = now;
     _fired[2]    = true;
 }
 
 void IRAM_ATTR Ignition::isr_cyl4() {
     uint64_t now = esp_timer_get_time();
+    if (_lastTime[3] != 0 && (now - _lastTime[3]) < IGN_DEBOUNCE_US) return;
     _lastTime[3] = now;
     _fired[3]    = true;
 }
